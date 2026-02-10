@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getCategories, createCategoryRule } from '@/lib/actions';
+import { getCategories, createCategoryRule, applyCategorizationRules } from '@/lib/actions';
 import type { Category, Transaction, Account } from '@/db/schema';
 
 interface TransactionFiltersProps {
@@ -71,6 +71,8 @@ export function TransactionFilters({ transactions, categories }: TransactionFilt
         categoryId: parseInt(ruleCategoryId),
         matchType: 'contains',
       });
+      // Apply rules to categorize matching transactions
+      await applyCategorizationRules();
       setRuleForTxId(null);
       setRulePattern('');
       setRuleCategoryId('');
