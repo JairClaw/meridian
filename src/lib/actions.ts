@@ -204,6 +204,43 @@ export async function createCategory(data: {
   return category;
 }
 
+// ============ MORTGAGES ============
+
+export async function getMortgages() {
+  return db.select({
+    mortgage: schema.mortgages,
+    account: schema.accounts,
+  })
+    .from(schema.mortgages)
+    .leftJoin(schema.accounts, eq(schema.mortgages.accountId, schema.accounts.id));
+}
+
+export async function createMortgage(data: {
+  accountId: number;
+  principalCents: number;
+  interestRate: number;
+  termMonths: number;
+  startDate: string;
+  monthlyPaymentCents: number;
+  extraPaymentCents?: number;
+  propertyAddress?: string;
+  propertyValue?: number;
+}) {
+  const [mortgage] = await db.insert(schema.mortgages).values(data).returning();
+  
+  // Update account balance to reflect the loan
+  await db.update(schema.accounts)
+    .set({ 
+      currentBalance: -data.principalCents,
+      updatedAt: new Date()
+    })
+    .where(eq(schema.accounts.id, data.accountId));
+  
+  revalidatePath('/mortgages');
+  revalidatePath('/accounts');
+  return mortgage;
+}
+
 // ============ RECURRING RULES (SUBSCRIPTIONS) ============
 
 export async function getRecurringRules() {
