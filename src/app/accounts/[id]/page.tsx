@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getAccount, getTransactions } from '@/lib/actions';
-import { EditAccountDialog } from './edit-account-dialog';
+import { EditAccountForm } from './edit-account-form';
 
 const accountTypeConfig: Record<string, { label: string; color: string; icon: string }> = {
   checking: { label: 'Checking', color: 'bg-blue-500/10 text-blue-500', icon: '💳' },
@@ -87,7 +87,7 @@ export default async function AccountDetailPage({
             </p>
           </div>
         </div>
-        <EditAccountDialog account={account} />
+        <EditAccountForm account={account} />
       </div>
 
       {/* Balance Card */}

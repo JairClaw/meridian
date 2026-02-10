@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getTransactions, getAccounts, getUncategorizedCount } from '@/lib/actions';
-import { AddTransactionDialog } from './add-transaction-dialog';
+import { AddTransactionForm } from './add-transaction-form';
 
 function formatCurrency(cents: number, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
@@ -63,7 +63,7 @@ export default async function TransactionsPage() {
               Import CSV
             </button>
           </a>
-          <AddTransactionDialog accounts={accounts} />
+          <AddTransactionForm accounts={accounts} />
         </div>
       </div>
 
@@ -124,7 +124,7 @@ export default async function TransactionsPage() {
                     Import CSV
                   </button>
                 </a>
-                <AddTransactionDialog accounts={accounts} />
+                <AddTransactionForm accounts={accounts} />
               </div>
             </div>
           ) : (

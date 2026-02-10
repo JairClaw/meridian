@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getAccounts } from '@/lib/actions';
-import { AddAccountDialog } from './add-account-dialog';
+import { AddAccountForm } from './add-account-form';
 
 const accountTypeConfig: Record<string, { label: string; color: string; icon: string }> = {
   checking: { label: 'Checking', color: 'bg-blue-500/10 text-blue-500', icon: '💳' },
@@ -49,7 +48,7 @@ export default async function AccountsPage() {
           <h1 className="text-3xl font-display">Accounts</h1>
           <p className="text-muted-foreground mt-1">Manage your financial accounts</p>
         </div>
-        <AddAccountDialog />
+        <AddAccountForm />
       </div>
 
       {/* Summary Cards */}
@@ -96,7 +95,7 @@ export default async function AccountsPage() {
           {accounts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">No accounts yet. Add your first account to get started.</p>
-              <AddAccountDialog />
+              <AddAccountForm />
             </div>
           ) : (
             <div className="space-y-3">

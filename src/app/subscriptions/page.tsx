@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getRecurringRules, getAccounts } from '@/lib/actions';
-import { AddSubscriptionDialog } from './add-subscription-dialog';
+import { AddSubscriptionForm } from './add-subscription-form';
 
 function formatCurrency(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -48,7 +48,7 @@ export default async function SubscriptionsPage() {
           <h1 className="text-3xl font-display">Subscriptions</h1>
           <p className="text-muted-foreground mt-1">Track your recurring payments</p>
         </div>
-        <AddSubscriptionDialog accounts={accounts} />
+        <AddSubscriptionForm accounts={accounts} />
       </div>
 
       {/* Summary Cards */}
@@ -94,7 +94,7 @@ export default async function SubscriptionsPage() {
             <div className="text-center py-12">
               <div className="text-4xl mb-4">🔄</div>
               <p className="text-muted-foreground mb-4">No subscriptions tracked yet.</p>
-              <AddSubscriptionDialog accounts={accounts} />
+              <AddSubscriptionForm accounts={accounts} />
             </div>
           ) : (
             <div className="space-y-3">
