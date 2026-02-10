@@ -26,6 +26,15 @@ export const categories = sqliteTable('categories', {
   isIncome: integer('is_income', { mode: 'boolean' }).notNull().default(false),
 });
 
+export const importBatches = sqliteTable('import_batches', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  accountId: integer('account_id').notNull().references(() => accounts.id),
+  filename: text('filename'),
+  transactionCount: integer('transaction_count').notNull().default(0),
+  totalAmountCents: integer('total_amount_cents').notNull().default(0),
+  importedAt: integer('imported_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
 export const transactions = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   accountId: integer('account_id').notNull().references(() => accounts.id),
@@ -40,6 +49,7 @@ export const transactions = sqliteTable('transactions', {
   recurringRuleId: integer('recurring_rule_id').references(() => recurringRules.id),
   importSource: text('import_source'), // csv, manual, api
   externalId: text('external_id'), // for deduplication
+  importBatchId: integer('import_batch_id').references(() => importBatches.id), // for batch undo
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 });
 
@@ -96,3 +106,4 @@ export type NewTransaction = typeof transactions.$inferInsert;
 export type Category = typeof categories.$inferSelect;
 export type RecurringRule = typeof recurringRules.$inferSelect;
 export type Mortgage = typeof mortgages.$inferSelect;
+export type ImportBatch = typeof importBatches.$inferSelect;

@@ -4,8 +4,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { importTransactionsWithDedup, getAccounts } from '@/lib/actions';
-import type { Account } from '@/db/schema';
+import { importTransactionsWithDedup, getAccounts, getImportBatches, deleteImportBatch, deleteAllTransactions } from '@/lib/actions';
+import type { Account, ImportBatch } from '@/db/schema';
 
 // Auto-detect column mappings based on common header names
 function autoDetectMapping(headers: string[]): {
@@ -108,17 +108,27 @@ export default function ImportPage() {
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [accountId, setAccountId] = useState<string>('');
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [batches, setBatches] = useState<Array<{ batch: ImportBatch; account: Account | null }>>([]);
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
+  const [filename, setFilename] = useState<string>('');
+  const [deleting, setDeleting] = useState<number | null>(null);
+  
+  const loadData = useCallback(() => {
+    getAccounts().then(setAccounts);
+    getImportBatches().then(setBatches);
+  }, []);
   
   useEffect(() => {
-    getAccounts().then(setAccounts);
-  }, []);
+    loadData();
+  }, [loadData]);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    setFilename(file.name);
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -221,10 +231,11 @@ export default function ImportPage() {
         externalId: row.hash, // For deduplication
       }));
       
-      const result = await importTransactionsWithDedup(transactions);
+      const result = await importTransactionsWithDedup(transactions, filename);
       
       setImportedCount(result.imported);
       setSkippedCount(result.skipped);
+      loadData(); // Reload batches
       setStep('complete');
     } catch (error) {
       console.error('Import failed:', error);
@@ -551,6 +562,85 @@ export default function ImportPage() {
                   View Transactions
                 </Button>
               </a>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Import History */}
+      {batches.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="font-display">Import History</CardTitle>
+                <CardDescription>Previous imports - click to undo</CardDescription>
+              </div>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={async () => {
+                  if (confirm('Delete ALL transactions? This cannot be undone.')) {
+                    setDeleting(-1);
+                    await deleteAllTransactions();
+                    loadData();
+                    setDeleting(null);
+                  }
+                }}
+                disabled={deleting !== null}
+              >
+                {deleting === -1 ? 'Deleting...' : 'Delete All'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {batches.map(({ batch, account }) => (
+                <div 
+                  key={batch.id}
+                  className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                      📥
+                    </div>
+                    <div>
+                      <p className="font-medium">{batch.filename || 'CSV Import'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {account?.name} • {new Date(batch.importedAt!).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-semibold">{batch.transactionCount} txs</p>
+                      <p className={`text-sm tabular-nums ${batch.totalAmountCents >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' }).format(batch.totalAmountCents / 100)}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        if (confirm(`Delete ${batch.transactionCount} transactions from this import?`)) {
+                          setDeleting(batch.id);
+                          await deleteImportBatch(batch.id);
+                          loadData();
+                          setDeleting(null);
+                        }
+                      }}
+                      disabled={deleting !== null}
+                    >
+                      {deleting === batch.id ? 'Deleting...' : 'Undo'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

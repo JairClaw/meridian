@@ -185,15 +185,24 @@ export async function importTransactions(transactions: Array<{
   return results;
 }
 
-export async function importTransactionsWithDedup(transactions: Array<{
-  accountId: number;
-  date: string;
-  amountCents: number;
-  description: string;
-  merchant?: string;
-  currency?: string;
-  externalId?: string;
-}>) {
+export async function importTransactionsWithDedup(
+  transactions: Array<{
+    accountId: number;
+    date: string;
+    amountCents: number;
+    description: string;
+    merchant?: string;
+    currency?: string;
+    externalId?: string;
+  }>,
+  filename?: string
+) {
+  if (transactions.length === 0) {
+    return { imported: 0, skipped: 0, batchId: null };
+  }
+  
+  const accountId = transactions[0].accountId;
+  
   // Get existing external IDs for deduplication
   const existingTxs = await db.select({ externalId: schema.transactions.externalId })
     .from(schema.transactions)
@@ -210,14 +219,24 @@ export async function importTransactionsWithDedup(transactions: Array<{
   
   if (newTransactions.length === 0) {
     revalidatePath('/transactions');
-    return { imported: 0, skipped };
+    return { imported: 0, skipped, batchId: null };
   }
   
-  // Insert new transactions
+  // Create import batch
+  const totalAmount = newTransactions.reduce((sum, t) => sum + t.amountCents, 0);
+  const [batch] = await db.insert(schema.importBatches).values({
+    accountId,
+    filename: filename || 'CSV Import',
+    transactionCount: newTransactions.length,
+    totalAmountCents: totalAmount,
+  }).returning();
+  
+  // Insert new transactions with batch ID
   await db.insert(schema.transactions).values(
     newTransactions.map(t => ({
       ...t,
       importSource: 'csv',
+      importBatchId: batch.id,
     }))
   );
   
@@ -227,10 +246,98 @@ export async function importTransactionsWithDedup(transactions: Array<{
     return acc;
   }, {} as Record<number, number>);
   
-  for (const [accountId, total] of Object.entries(accountTotals)) {
+  for (const [accId, total] of Object.entries(accountTotals)) {
     await db.update(schema.accounts)
       .set({ 
         currentBalance: sql`${schema.accounts.currentBalance} + ${total}`,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.accounts.id, Number(accId)));
+  }
+  
+  revalidatePath('/transactions');
+  revalidatePath('/accounts');
+  revalidatePath('/');
+  
+  return { imported: newTransactions.length, skipped, batchId: batch.id };
+}
+
+// ============ IMPORT BATCH MANAGEMENT ============
+
+export async function getImportBatches() {
+  return db.select({
+    batch: schema.importBatches,
+    account: schema.accounts,
+  })
+    .from(schema.importBatches)
+    .leftJoin(schema.accounts, eq(schema.importBatches.accountId, schema.accounts.id))
+    .orderBy(desc(schema.importBatches.importedAt));
+}
+
+export async function deleteImportBatch(batchId: number) {
+  // Get transactions in this batch to reverse the balance
+  const batchTxs = await db.select()
+    .from(schema.transactions)
+    .where(eq(schema.transactions.importBatchId, batchId));
+  
+  if (batchTxs.length === 0) {
+    // Just delete the batch record
+    await db.delete(schema.importBatches).where(eq(schema.importBatches.id, batchId));
+    revalidatePath('/import');
+    return { deleted: 0 };
+  }
+  
+  // Calculate balance adjustments per account
+  const accountTotals = batchTxs.reduce((acc, t) => {
+    acc[t.accountId] = (acc[t.accountId] || 0) + t.amountCents;
+    return acc;
+  }, {} as Record<number, number>);
+  
+  // Delete the transactions
+  await db.delete(schema.transactions).where(eq(schema.transactions.importBatchId, batchId));
+  
+  // Reverse the account balances
+  for (const [accountId, total] of Object.entries(accountTotals)) {
+    await db.update(schema.accounts)
+      .set({ 
+        currentBalance: sql`${schema.accounts.currentBalance} - ${total}`,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.accounts.id, Number(accountId)));
+  }
+  
+  // Delete the batch record
+  await db.delete(schema.importBatches).where(eq(schema.importBatches.id, batchId));
+  
+  revalidatePath('/transactions');
+  revalidatePath('/accounts');
+  revalidatePath('/import');
+  revalidatePath('/');
+  
+  return { deleted: batchTxs.length };
+}
+
+export async function deleteAllTransactions() {
+  // Get all transactions to reverse balances
+  const allTxs = await db.select().from(schema.transactions);
+  
+  // Calculate balance adjustments per account
+  const accountTotals = allTxs.reduce((acc, t) => {
+    acc[t.accountId] = (acc[t.accountId] || 0) + t.amountCents;
+    return acc;
+  }, {} as Record<number, number>);
+  
+  // Delete all transactions
+  await db.delete(schema.transactions);
+  
+  // Delete all import batches
+  await db.delete(schema.importBatches);
+  
+  // Reset account balances
+  for (const [accountId, total] of Object.entries(accountTotals)) {
+    await db.update(schema.accounts)
+      .set({ 
+        currentBalance: sql`${schema.accounts.currentBalance} - ${total}`,
         updatedAt: new Date()
       })
       .where(eq(schema.accounts.id, Number(accountId)));
@@ -238,9 +345,10 @@ export async function importTransactionsWithDedup(transactions: Array<{
   
   revalidatePath('/transactions');
   revalidatePath('/accounts');
+  revalidatePath('/import');
   revalidatePath('/');
   
-  return { imported: newTransactions.length, skipped };
+  return { deleted: allTxs.length };
 }
 
 // ============ CATEGORIES ============
