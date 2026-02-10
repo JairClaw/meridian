@@ -808,6 +808,16 @@ export async function getUncategorizedCount() {
   return result?.count || 0;
 }
 
+// Helper to normalize text for pattern matching (same as recommendation generation)
+function normalizeForMatching(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\d{4,}/g, '') // Remove long numbers
+    .replace(/[*#]+/g, '') // Remove * and #
+    .replace(/\s+/g, ' ') // Normalize spaces
+    .trim();
+}
+
 // Get transactions matching a pattern (for previewing rules)
 export async function getTransactionsMatchingPattern(pattern: string) {
   const allUncategorized = await db.select({
@@ -820,10 +830,14 @@ export async function getTransactionsMatchingPattern(pattern: string) {
     .orderBy(desc(schema.transactions.date))
     .limit(100);
   
-  const lowerPattern = pattern.toLowerCase();
+  const lowerPattern = pattern.toLowerCase().trim();
   
   return allUncategorized.filter(({ transaction }) => {
-    const text = `${transaction.description} ${transaction.merchant || ''}`.toLowerCase();
-    return text.includes(lowerPattern);
+    // Check both normalized and raw text for matches
+    const rawText = `${transaction.description} ${transaction.merchant || ''}`.toLowerCase();
+    const normalizedText = normalizeForMatching(`${transaction.merchant || ''} ${transaction.description}`);
+    
+    // Match if pattern is found in either raw or normalized text
+    return rawText.includes(lowerPattern) || normalizedText.includes(lowerPattern);
   });
 }
