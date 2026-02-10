@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getTransactions, getAccounts, getUncategorizedCount } from '@/lib/actions';
+import { getTransactions, getAccounts, getUncategorizedCount, getCategories } from '@/lib/actions';
 import { AddTransactionForm } from './add-transaction-form';
+import { TransactionFilters } from './transaction-filters';
 
 function formatCurrency(cents: number, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
@@ -22,21 +23,12 @@ function formatDate(dateStr: string) {
 }
 
 export default async function TransactionsPage() {
-  const [transactions, accounts, uncategorizedCount] = await Promise.all([
-    getTransactions({ limit: 100 }),
+  const [transactions, accounts, uncategorizedCount, categories] = await Promise.all([
+    getTransactions({ limit: 200 }),
     getAccounts(),
     getUncategorizedCount(),
+    getCategories(),
   ]);
-
-  // Group transactions by date
-  const groupedByDate = transactions.reduce((acc, { transaction, account, category }) => {
-    const date = transaction.date;
-    if (!acc[date]) acc[date] = [];
-    acc[date].push({ transaction, account, category });
-    return acc;
-  }, {} as Record<string, typeof transactions>);
-
-  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
 
   return (
     <div className="space-y-8">
@@ -128,53 +120,7 @@ export default async function TransactionsPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              {sortedDates.map((date) => (
-                <div key={date}>
-                  <div className="sticky top-0 bg-card py-2 mb-2">
-                    <p className="text-sm font-medium text-muted-foreground">{formatDate(date)}</p>
-                  </div>
-                  <div className="space-y-2">
-                    {groupedByDate[date].map(({ transaction, account, category }) => (
-                      <div 
-                        key={transaction.id} 
-                        className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {(transaction.merchant || transaction.description).charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{transaction.merchant || transaction.description}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {transaction.description}
-                              {account && ` • ${account.name}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          {category && (
-                            <Badge variant="outline" className="text-xs">
-                              {category.name}
-                            </Badge>
-                          )}
-                          <div className="text-right min-w-[100px]">
-                            <p className={`font-semibold tabular-nums ${
-                              transaction.amountCents > 0 ? 'text-emerald-500' : ''
-                            }`}>
-                              {transaction.amountCents > 0 ? '+' : ''}
-                              {formatCurrency(transaction.amountCents, transaction.currency)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <TransactionFilters transactions={transactions} categories={categories} />
           )}
         </CardContent>
       </Card>
