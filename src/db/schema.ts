@@ -99,6 +99,18 @@ export const settings = sqliteTable('settings', {
   value: text('value').notNull(),
 });
 
+// Category rules for auto-categorization
+export const categoryRules = sqliteTable('category_rules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  categoryId: integer('category_id').notNull().references(() => categories.id),
+  pattern: text('pattern').notNull(), // Text pattern to match
+  matchType: text('match_type').notNull().default('contains'), // contains, starts_with, exact, regex
+  caseSensitive: integer('case_sensitive', { mode: 'boolean' }).notNull().default(false),
+  priority: integer('priority').notNull().default(0), // Higher = checked first
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
+});
+
 // Types for TypeScript
 export type Account = typeof accounts.$inferSelect;
 export type NewAccount = typeof accounts.$inferInsert;
@@ -108,3 +120,4 @@ export type Category = typeof categories.$inferSelect;
 export type RecurringRule = typeof recurringRules.$inferSelect;
 export type Mortgage = typeof mortgages.$inferSelect;
 export type ImportBatch = typeof importBatches.$inferSelect;
+export type CategoryRule = typeof categoryRules.$inferSelect;

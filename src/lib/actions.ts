@@ -620,3 +620,190 @@ export async function getCategoryBreakdown(startDate?: string, endDate?: string)
   
   return Object.values(categoryTotals).sort((a, b) => b.value - a.value);
 }
+
+// ============ CATEGORY RULES ============
+
+export async function getCategoryRules() {
+  return db.select({
+    rule: schema.categoryRules,
+    category: schema.categories,
+  })
+    .from(schema.categoryRules)
+    .leftJoin(schema.categories, eq(schema.categoryRules.categoryId, schema.categories.id))
+    .orderBy(desc(schema.categoryRules.priority), schema.categoryRules.pattern);
+}
+
+export async function createCategoryRule(data: {
+  categoryId: number;
+  pattern: string;
+  matchType?: string;
+  caseSensitive?: boolean;
+  priority?: number;
+}) {
+  const [rule] = await db.insert(schema.categoryRules).values({
+    categoryId: data.categoryId,
+    pattern: data.pattern,
+    matchType: data.matchType || 'contains',
+    caseSensitive: data.caseSensitive || false,
+    priority: data.priority || 0,
+  }).returning();
+  
+  revalidatePath('/settings');
+  return rule;
+}
+
+export async function updateCategoryRule(id: number, data: Partial<{
+  categoryId: number;
+  pattern: string;
+  matchType: string;
+  caseSensitive: boolean;
+  priority: number;
+  isActive: boolean;
+}>) {
+  const [rule] = await db.update(schema.categoryRules)
+    .set(data)
+    .where(eq(schema.categoryRules.id, id))
+    .returning();
+  
+  revalidatePath('/settings');
+  return rule;
+}
+
+export async function deleteCategoryRule(id: number) {
+  await db.delete(schema.categoryRules).where(eq(schema.categoryRules.id, id));
+  revalidatePath('/settings');
+}
+
+// Check if text matches a rule pattern
+function matchesRule(text: string, pattern: string, matchType: string, caseSensitive: boolean): boolean {
+  const haystack = caseSensitive ? text : text.toLowerCase();
+  const needle = caseSensitive ? pattern : pattern.toLowerCase();
+  
+  switch (matchType) {
+    case 'exact':
+      return haystack === needle;
+    case 'starts_with':
+      return haystack.startsWith(needle);
+    case 'regex':
+      try {
+        const flags = caseSensitive ? '' : 'i';
+        return new RegExp(pattern, flags).test(text);
+      } catch {
+        return false;
+      }
+    case 'contains':
+    default:
+      return haystack.includes(needle);
+  }
+}
+
+// Apply rules to a single transaction and return matching category ID
+export async function findCategoryForTransaction(description: string, merchant?: string): Promise<number | null> {
+  const rules = await db.select()
+    .from(schema.categoryRules)
+    .where(eq(schema.categoryRules.isActive, true))
+    .orderBy(desc(schema.categoryRules.priority));
+  
+  const textToMatch = `${description} ${merchant || ''}`.trim();
+  
+  for (const rule of rules) {
+    if (matchesRule(textToMatch, rule.pattern, rule.matchType, rule.caseSensitive)) {
+      return rule.categoryId;
+    }
+  }
+  
+  return null;
+}
+
+// Apply rules to all uncategorized transactions
+export async function applyCategorizationRules() {
+  const uncategorized = await db.select()
+    .from(schema.transactions)
+    .where(sql`${schema.transactions.categoryId} IS NULL`);
+  
+  const rules = await db.select()
+    .from(schema.categoryRules)
+    .where(eq(schema.categoryRules.isActive, true))
+    .orderBy(desc(schema.categoryRules.priority));
+  
+  let categorized = 0;
+  
+  for (const tx of uncategorized) {
+    const textToMatch = `${tx.description} ${tx.merchant || ''}`.trim();
+    
+    for (const rule of rules) {
+      if (matchesRule(textToMatch, rule.pattern, rule.matchType, rule.caseSensitive)) {
+        await db.update(schema.transactions)
+          .set({ categoryId: rule.categoryId })
+          .where(eq(schema.transactions.id, tx.id));
+        categorized++;
+        break;
+      }
+    }
+  }
+  
+  revalidatePath('/transactions');
+  revalidatePath('/');
+  return { categorized, total: uncategorized.length };
+}
+
+// Get recommendations for new rules based on common uncategorized patterns
+export async function getCategoryRecommendations() {
+  const uncategorized = await db.select()
+    .from(schema.transactions)
+    .where(sql`${schema.transactions.categoryId} IS NULL`);
+  
+  // Group by merchant/description patterns
+  const patterns: Record<string, { count: number; totalCents: number; examples: string[] }> = {};
+  
+  for (const tx of uncategorized) {
+    // Extract a clean pattern from the description
+    let pattern = (tx.merchant || tx.description || '').trim();
+    
+    // Clean up common noise
+    pattern = pattern
+      .replace(/\d{4,}/g, '') // Remove long numbers
+      .replace(/[*#]+/g, '') // Remove * and #
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim()
+      .split(/[-\/]/)[0] // Take first part before - or /
+      .trim();
+    
+    if (pattern.length < 3) continue;
+    
+    // Normalize to lowercase for grouping
+    const key = pattern.toLowerCase();
+    
+    if (!patterns[key]) {
+      patterns[key] = { count: 0, totalCents: 0, examples: [] };
+    }
+    patterns[key].count++;
+    patterns[key].totalCents += Math.abs(tx.amountCents);
+    if (patterns[key].examples.length < 3) {
+      patterns[key].examples.push(tx.description);
+    }
+  }
+  
+  // Sort by count and return top patterns
+  const recommendations = Object.entries(patterns)
+    .filter(([_, data]) => data.count >= 2) // At least 2 occurrences
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 20)
+    .map(([pattern, data]) => ({
+      pattern,
+      count: data.count,
+      totalCents: data.totalCents,
+      examples: data.examples,
+    }));
+  
+  return recommendations;
+}
+
+// Get count of uncategorized transactions (for the lightbulb indicator)
+export async function getUncategorizedCount() {
+  const [result] = await db.select({ count: sql<number>`COUNT(*)` })
+    .from(schema.transactions)
+    .where(sql`${schema.transactions.categoryId} IS NULL`);
+  
+  return result?.count || 0;
+}

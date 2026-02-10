@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getTransactions, getAccounts } from '@/lib/actions';
+import { getTransactions, getAccounts, getUncategorizedCount } from '@/lib/actions';
 import { AddTransactionDialog } from './add-transaction-dialog';
 
 function formatCurrency(cents: number, currency = 'USD') {
@@ -21,9 +22,10 @@ function formatDate(dateStr: string) {
 }
 
 export default async function TransactionsPage() {
-  const [transactions, accounts] = await Promise.all([
+  const [transactions, accounts, uncategorizedCount] = await Promise.all([
     getTransactions({ limit: 100 }),
     getAccounts(),
+    getUncategorizedCount(),
   ]);
 
   // Group transactions by date
@@ -45,6 +47,14 @@ export default async function TransactionsPage() {
           <p className="text-muted-foreground mt-1">Track your income and expenses</p>
         </div>
         <div className="flex gap-3">
+          {uncategorizedCount > 0 && (
+            <Link href="/settings#rules">
+              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 transition-colors">
+                <span className="text-lg">💡</span>
+                {uncategorizedCount} uncategorized
+              </button>
+            </Link>
+          )}
           <a href="/import">
             <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCategories } from '@/lib/actions';
+import { CategoryRulesManager } from './category-rules';
 
 export default async function SettingsPage() {
   const categories = await getCategories();
@@ -99,6 +100,9 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Auto-Categorization Rules */}
+      <CategoryRulesManager />
 
       {/* Data Management */}
       <Card>
