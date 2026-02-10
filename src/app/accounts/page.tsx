@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -104,9 +105,10 @@ export default async function AccountsPage() {
                 const isNegative = account.currentBalance < 0;
                 
                 return (
-                  <div 
-                    key={account.id} 
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
+                  <Link 
+                    key={account.id}
+                    href={`/accounts/${account.id}`}
+                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group block"
                   >
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${config.color}`}>
@@ -131,7 +133,7 @@ export default async function AccountsPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">{account.currency}</p>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

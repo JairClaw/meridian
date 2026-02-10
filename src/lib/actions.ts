@@ -24,19 +24,44 @@ export async function createAccount(data: {
   currentBalance?: number;
   color?: string;
 }) {
+  const balance = data.currentBalance || 0;
   const [account] = await db.insert(schema.accounts).values({
     name: data.name,
     type: data.type,
     currency: data.currency,
     institution: data.institution,
     accountNumber: data.accountNumber,
-    currentBalance: data.currentBalance || 0,
+    openingBalance: balance, // Start with opening = current (no transactions yet)
+    currentBalance: balance,
     color: data.color,
   }).returning();
   
   revalidatePath('/accounts');
   revalidatePath('/');
   return account;
+}
+
+// Recalculate account balance from opening_balance + sum of all transactions
+export async function recalculateAccountBalance(accountId: number) {
+  const [sumResult] = await db.select({
+    total: sql<number>`COALESCE(SUM(${schema.transactions.amountCents}), 0)`,
+  })
+    .from(schema.transactions)
+    .where(eq(schema.transactions.accountId, accountId));
+  
+  const [account] = await db.select()
+    .from(schema.accounts)
+    .where(eq(schema.accounts.id, accountId));
+  
+  if (!account) return null;
+  
+  const newBalance = (account.openingBalance || 0) + (sumResult?.total || 0);
+  
+  await db.update(schema.accounts)
+    .set({ currentBalance: newBalance, updatedAt: new Date() })
+    .where(eq(schema.accounts.id, accountId));
+  
+  return newBalance;
 }
 
 export async function updateAccount(id: number, data: Partial<{
@@ -195,7 +220,10 @@ export async function importTransactionsWithDedup(
     currency?: string;
     externalId?: string;
   }>,
-  filename?: string
+  filename?: string,
+  options?: {
+    preserveBalance?: boolean; // If true, adjust opening_balance to maintain current balance
+  }
 ) {
   if (transactions.length === 0) {
     return { imported: 0, skipped: 0, batchId: null };
@@ -247,12 +275,24 @@ export async function importTransactionsWithDedup(
   }, {} as Record<number, number>);
   
   for (const [accId, total] of Object.entries(accountTotals)) {
-    await db.update(schema.accounts)
-      .set({ 
-        currentBalance: sql`${schema.accounts.currentBalance} + ${total}`,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.accounts.id, Number(accId)));
+    if (options?.preserveBalance) {
+      // Historical import: adjust opening_balance to keep current balance unchanged
+      // If we're adding transactions that sum to X, we need to subtract X from opening_balance
+      await db.update(schema.accounts)
+        .set({ 
+          openingBalance: sql`${schema.accounts.openingBalance} - ${total}`,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.accounts.id, Number(accId)));
+    } else {
+      // Normal import: update current balance
+      await db.update(schema.accounts)
+        .set({ 
+          currentBalance: sql`${schema.accounts.currentBalance} + ${total}`,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.accounts.id, Number(accId)));
+    }
   }
   
   revalidatePath('/transactions');

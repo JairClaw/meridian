@@ -8,7 +8,8 @@ export const accounts = sqliteTable('accounts', {
   currency: text('currency').notNull().default('USD'),
   institution: text('institution'),
   accountNumber: text('account_number'), // last 4 digits only
-  currentBalance: integer('current_balance').notNull().default(0), // in cents
+  openingBalance: integer('opening_balance').notNull().default(0), // in cents - balance before any tracked transactions
+  currentBalance: integer('current_balance').notNull().default(0), // in cents - computed: opening + sum(txs)
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   color: text('color'), // for UI
   icon: text('icon'),

@@ -114,6 +114,7 @@ export default function ImportPage() {
   const [skippedCount, setSkippedCount] = useState(0);
   const [filename, setFilename] = useState<string>('');
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [preserveBalance, setPreserveBalance] = useState(false);
   
   const loadData = useCallback(() => {
     getAccounts().then(setAccounts);
@@ -233,7 +234,7 @@ export default function ImportPage() {
         externalId: row.hash, // For deduplication
       }));
       
-      const result = await importTransactionsWithDedup(transactions, filename);
+      const result = await importTransactionsWithDedup(transactions, filename, { preserveBalance });
       
       setImportedCount(result.imported);
       setSkippedCount(result.skipped);
@@ -557,6 +558,26 @@ export default function ImportPage() {
               </Select>
             </div>
 
+            {/* Historical import option */}
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <input
+                type="checkbox"
+                id="preserve-balance"
+                checked={preserveBalance}
+                onChange={(e) => setPreserveBalance(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-gold-500 focus:ring-gold-500"
+              />
+              <div>
+                <label htmlFor="preserve-balance" className="text-sm font-medium cursor-pointer">
+                  📜 Historical import (preserve current balance)
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use this when onboarding an account with existing balance. The opening balance will be adjusted 
+                  so your current balance stays the same after import.
+                </p>
+              </div>
+            </div>
+
             <div className="overflow-x-auto rounded-lg border border-border max-h-96">
               <Table>
                 <TableHeader>
@@ -626,6 +647,7 @@ export default function ImportPage() {
                 setParsedRows([]);
                 setSkippedCount(0);
                 setImportedCount(0);
+                setPreserveBalance(false);
               }}>
                 Import More
               </Button>
