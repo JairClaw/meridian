@@ -182,12 +182,19 @@ export async function importTransactions(transactions: Array<{
   currency?: string;
   externalId?: string;
 }>) {
-  const results = await db.insert(schema.transactions).values(
-    transactions.map(t => ({
-      ...t,
-      importSource: 'csv',
-    }))
-  ).returning();
+  // Insert in chunks to avoid SQLite variable limit
+  const CHUNK_SIZE = 50;
+  const results = [];
+  for (let i = 0; i < transactions.length; i += CHUNK_SIZE) {
+    const chunk = transactions.slice(i, i + CHUNK_SIZE);
+    const chunkResults = await db.insert(schema.transactions).values(
+      chunk.map(t => ({
+        ...t,
+        importSource: 'csv',
+      }))
+    ).returning();
+    results.push(...chunkResults);
+  }
   
   // Update account balances
   const accountTotals = transactions.reduce((acc, t) => {
@@ -259,14 +266,18 @@ export async function importTransactionsWithDedup(
     totalAmountCents: totalAmount,
   }).returning();
   
-  // Insert new transactions with batch ID
-  await db.insert(schema.transactions).values(
-    newTransactions.map(t => ({
-      ...t,
-      importSource: 'csv',
-      importBatchId: batch.id,
-    }))
-  );
+  // Insert new transactions with batch ID (in chunks to avoid SQLite variable limit)
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < newTransactions.length; i += CHUNK_SIZE) {
+    const chunk = newTransactions.slice(i, i + CHUNK_SIZE);
+    await db.insert(schema.transactions).values(
+      chunk.map(t => ({
+        ...t,
+        importSource: 'csv',
+        importBatchId: batch.id,
+      }))
+    );
+  }
   
   // Update account balances
   const accountTotals = newTransactions.reduce((acc, t) => {
