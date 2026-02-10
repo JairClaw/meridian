@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMonthlyTrends, getCategoryBreakdown, getDashboardStats } from '@/lib/actions';
+import { getMonthlyTrends, getDashboardStats } from '@/lib/actions';
 import { SpendingChart } from '@/components/charts/spending-chart';
-import { CategoryChart } from '@/components/charts/category-chart';
+import { MonthlyBreakdown } from './month-selector';
 
 function formatCurrency(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -12,9 +12,8 @@ function formatCurrency(cents: number, currency = 'EUR') {
 }
 
 export default async function ReportsPage() {
-  const [trends, categories, stats] = await Promise.all([
+  const [trends, stats] = await Promise.all([
     getMonthlyTrends(6),
-    getCategoryBreakdown(),
     getDashboardStats(),
   ]);
   
@@ -64,99 +63,29 @@ export default async function ReportsPage() {
         </Card>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Income vs Expenses Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display">Income vs Expenses</CardTitle>
-            <CardDescription>Last 6 months trend</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {trends.some(t => t.income > 0 || t.expenses > 0) ? (
-              <SpendingChart data={trends} />
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">📊</div>
-                  <p>No transaction data yet</p>
-                  <p className="text-sm">Add transactions to see trends</p>
-                </div>
+      {/* Income vs Expenses Trend */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display">Income vs Expenses</CardTitle>
+          <CardDescription>Last 6 months trend</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {trends.some(t => t.income > 0 || t.expenses > 0) ? (
+            <SpendingChart data={trends} />
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <div className="text-4xl mb-2">📊</div>
+                <p>No transaction data yet</p>
+                <p className="text-sm">Add transactions to see trends</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Spending by Category */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display">Spending by Category</CardTitle>
-            <CardDescription>This month's breakdown</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {categories.length > 0 ? (
-              <CategoryChart data={categories} />
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">🥧</div>
-                  <p>No categorized expenses yet</p>
-                  <p className="text-sm">Categorize transactions to see breakdown</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Category Details */}
-      {categories.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display">Category Details</CardTitle>
-            <CardDescription>Spending breakdown by category this month</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {categories.map((category, index) => {
-                const total = categories.reduce((sum, c) => sum + c.value, 0);
-                const percentage = total > 0 ? (category.value / total) * 100 : 0;
-                
-                return (
-                  <div key={category.name} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: category.color }}
-                        />
-                        <span className="font-medium">{category.name}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">
-                          {percentage.toFixed(1)}%
-                        </span>
-                        <span className="font-semibold tabular-nums min-w-[100px] text-right">
-                          {formatCurrency(category.value)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div 
-                        className="h-2 rounded-full transition-all duration-500"
-                        style={{ 
-                          width: `${percentage}%`,
-                          backgroundColor: category.color 
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Monthly Breakdown with Month Selector */}
+      <MonthlyBreakdown />
 
       {/* Monthly Summary Table */}
       <Card>
