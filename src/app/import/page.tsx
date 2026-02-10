@@ -61,6 +61,71 @@ function hashRow(date: string, amount: number, description: string): string {
   }
   return hash.toString(16);
 }
+
+// Auto-detect delimiter from file content
+function detectDelimiter(text: string): string {
+  const delimiters = [',', ';', '\t', '|'];
+  const firstLines = text.split('\n').slice(0, 5).join('\n');
+  
+  let bestDelimiter = ',';
+  let maxCount = 0;
+  let mostConsistent = 0;
+  
+  for (const delim of delimiters) {
+    const lines = firstLines.split('\n').filter(l => l.trim());
+    if (lines.length === 0) continue;
+    
+    // Count occurrences per line
+    const counts = lines.map(line => {
+      // Don't count delimiters inside quotes
+      let count = 0;
+      let inQuotes = false;
+      for (const char of line) {
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === delim && !inQuotes) count++;
+      }
+      return count;
+    });
+    
+    // Check if counts are consistent (all lines have same number of delimiters)
+    const firstCount = counts[0];
+    const isConsistent = counts.every(c => c === firstCount) && firstCount > 0;
+    const totalCount = counts.reduce((a, b) => a + b, 0);
+    
+    // Prefer consistent delimiters, then highest count
+    if (isConsistent && firstCount > mostConsistent) {
+      mostConsistent = firstCount;
+      bestDelimiter = delim;
+      maxCount = totalCount;
+    } else if (!mostConsistent && totalCount > maxCount) {
+      maxCount = totalCount;
+      bestDelimiter = delim;
+    }
+  }
+  
+  return bestDelimiter;
+}
+
+// Parse a CSV line with given delimiter, respecting quotes
+function parseCSVLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
 import {
   Select,
   SelectContent,
@@ -134,26 +199,15 @@ export default function ImportPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      const rows = text.split('\n').map(row => {
-        // Handle quoted CSV fields
-        const result: string[] = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < row.length; i++) {
-          const char = row[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            result.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        result.push(current.trim());
-        return result;
-      }).filter(row => row.some(cell => cell.length > 0));
+      
+      // Auto-detect delimiter
+      const delimiter = detectDelimiter(text);
+      console.log('Detected delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
+      
+      // Parse rows with detected delimiter
+      const rows = text.split('\n')
+        .map(row => parseCSVLine(row, delimiter))
+        .filter(row => row.some(cell => cell.length > 0));
       
       if (rows.length > 0) {
         const detectedHeaders = rows[0];
@@ -322,7 +376,7 @@ export default function ImportPage() {
             <div className="border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-gold-500/50 transition-colors">
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.txt,text/csv,text/plain"
                 onChange={handleFileUpload}
                 className="hidden"
                 id="csv-upload"
@@ -330,7 +384,7 @@ export default function ImportPage() {
               <label htmlFor="csv-upload" className="cursor-pointer">
                 <div className="text-4xl mb-4">📄</div>
                 <p className="font-medium mb-2">Drop your CSV file here or click to browse</p>
-                <p className="text-sm text-muted-foreground">Supports most bank export formats</p>
+                <p className="text-sm text-muted-foreground">CSV or TXT files • Auto-detects delimiter (comma, semicolon, tab)</p>
               </label>
             </div>
           </CardContent>
