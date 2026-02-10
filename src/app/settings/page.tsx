@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getCategories } from '@/lib/actions';
 import { CategoryRulesManager } from './category-rules';
+import { AddCategoryForm } from './add-category-form';
 
 export default async function SettingsPage() {
   const categories = await getCategories();
@@ -59,9 +59,7 @@ export default async function SettingsPage() {
               <CardTitle className="font-display">Categories</CardTitle>
               <CardDescription>{categories.length} categories configured</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              Add Category
-            </Button>
+            <AddCategoryForm />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
