@@ -19,8 +19,9 @@ import {
   deleteCategoryRule,
   applyCategorizationRules,
   getCategoryRecommendations,
+  getTransactionsMatchingPattern,
 } from '@/lib/actions';
-import type { Category, CategoryRule } from '@/db/schema';
+import type { Category, CategoryRule, Transaction, Account } from '@/db/schema';
 
 const matchTypes = [
   { value: 'contains', label: 'Contains' },
@@ -48,6 +49,9 @@ export function CategoryRulesManager() {
     categoryId: '',
     matchType: 'contains',
   });
+  const [expandedPattern, setExpandedPattern] = useState<string | null>(null);
+  const [matchingTxs, setMatchingTxs] = useState<Array<{ transaction: Transaction; account: Account | null }>>([]);
+  const [loadingTxs, setLoadingTxs] = useState(false);
 
   const loadData = async () => {
     const [rulesData, categoriesData, recsData] = await Promise.all([
@@ -77,6 +81,7 @@ export function CategoryRulesManager() {
       
       setShowAddForm(false);
       setFormData({ pattern: '', categoryId: '', matchType: 'contains' });
+      setExpandedPattern(null);
       loadData();
     } catch (error) {
       console.error('Failed to create rule:', error);
@@ -105,10 +110,33 @@ export function CategoryRulesManager() {
     setFormData({ ...formData, pattern });
     setShowSuggestions(false);
     setShowAddForm(true);
+    setExpandedPattern(null);
+  };
+
+  const handleExpandPattern = async (pattern: string) => {
+    if (expandedPattern === pattern) {
+      setExpandedPattern(null);
+      setMatchingTxs([]);
+      return;
+    }
+    
+    setExpandedPattern(pattern);
+    setLoadingTxs(true);
+    try {
+      const txs = await getTransactionsMatchingPattern(pattern);
+      setMatchingTxs(txs);
+    } finally {
+      setLoadingTxs(false);
+    }
   };
 
   const formatCurrency = (cents: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="space-y-6" id="rules">
@@ -273,33 +301,84 @@ export function CategoryRulesManager() {
         </CardContent>
       </Card>
 
-      {/* Suggestions Section (inline, not popup) */}
+      {/* Suggestions Section */}
       {showSuggestions && recommendations.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="font-display text-lg">💡 Suggested Rules</CardTitle>
-            <CardDescription>Based on your uncategorized transactions</CardDescription>
+            <CardDescription>Click a pattern to see matching transactions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {recommendations.map((rec, i) => (
-                <div 
-                  key={i}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{rec.pattern}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {rec.count} transactions • {formatCurrency(rec.totalCents)}
-                    </p>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleCreateFromRec(rec.pattern)}
+                <div key={i}>
+                  <div 
+                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                      expandedPattern === rec.pattern 
+                        ? 'bg-muted/70 border border-border' 
+                        : 'bg-muted/30 hover:bg-muted/50'
+                    }`}
+                    onClick={() => handleExpandPattern(rec.pattern)}
                   >
-                    Create Rule
-                  </Button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`transition-transform ${expandedPattern === rec.pattern ? 'rotate-90' : ''}`}>
+                          ▶
+                        </span>
+                        <p className="font-medium truncate">{rec.pattern}</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-5">
+                        {rec.count} transactions • {formatCurrency(rec.totalCents)}
+                      </p>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCreateFromRec(rec.pattern);
+                      }}
+                    >
+                      Create Rule
+                    </Button>
+                  </div>
+                  
+                  {/* Expanded transactions list */}
+                  {expandedPattern === rec.pattern && (
+                    <div className="ml-5 mt-2 mb-4 border-l-2 border-border pl-4 space-y-1">
+                      {loadingTxs ? (
+                        <p className="text-sm text-muted-foreground py-2">Loading...</p>
+                      ) : matchingTxs.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-2">No matching transactions</p>
+                      ) : (
+                        matchingTxs.slice(0, 10).map(({ transaction, account }) => (
+                          <div 
+                            key={transaction.id}
+                            className="flex items-center justify-between py-1.5 text-sm"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-muted-foreground w-16 flex-shrink-0">
+                                {formatDate(transaction.date)}
+                              </span>
+                              <span className="truncate">
+                                {transaction.merchant || transaction.description}
+                              </span>
+                            </div>
+                            <span className={`tabular-nums flex-shrink-0 ${
+                              transaction.amountCents < 0 ? '' : 'text-emerald-500'
+                            }`}>
+                              {formatCurrency(transaction.amountCents)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                      {matchingTxs.length > 10 && (
+                        <p className="text-xs text-muted-foreground pt-1">
+                          + {matchingTxs.length - 10} more transactions
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

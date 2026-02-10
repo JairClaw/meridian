@@ -807,3 +807,23 @@ export async function getUncategorizedCount() {
   
   return result?.count || 0;
 }
+
+// Get transactions matching a pattern (for previewing rules)
+export async function getTransactionsMatchingPattern(pattern: string) {
+  const allUncategorized = await db.select({
+    transaction: schema.transactions,
+    account: schema.accounts,
+  })
+    .from(schema.transactions)
+    .leftJoin(schema.accounts, eq(schema.transactions.accountId, schema.accounts.id))
+    .where(sql`${schema.transactions.categoryId} IS NULL`)
+    .orderBy(desc(schema.transactions.date))
+    .limit(100);
+  
+  const lowerPattern = pattern.toLowerCase();
+  
+  return allUncategorized.filter(({ transaction }) => {
+    const text = `${transaction.description} ${transaction.merchant || ''}`.toLowerCase();
+    return text.includes(lowerPattern);
+  });
+}
