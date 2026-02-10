@@ -3,8 +3,49 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { importTransactions, getAccounts } from '@/lib/actions';
+import { Badge } from '@/components/ui/badge';
+import { importTransactionsWithDedup, getAccounts } from '@/lib/actions';
 import type { Account } from '@/db/schema';
+
+// Auto-detect column mappings based on common header names
+function autoDetectMapping(headers: string[]): {
+  date: string;
+  description: string;
+  amount: string;
+  merchant: string;
+  direction: string;
+} {
+  const lowerHeaders = headers.map(h => h.toLowerCase());
+  
+  const findMatch = (patterns: string[]): string => {
+    for (const pattern of patterns) {
+      const idx = lowerHeaders.findIndex(h => h.includes(pattern));
+      if (idx >= 0) return headers[idx];
+    }
+    return '';
+  };
+  
+  return {
+    date: findMatch(['created on', 'date', 'posted', 'transaction date', 'time']),
+    description: findMatch(['reference', 'description', 'memo', 'note', 'details', 'narrative']),
+    amount: findMatch(['target amount', 'amount', 'value', 'sum', 'total', 'debit', 'credit']),
+    merchant: findMatch(['target name', 'merchant', 'payee', 'vendor', 'recipient', 'beneficiary', 'counterparty']),
+    direction: findMatch(['direction', 'type', 'in/out', 'transaction type']),
+  };
+}
+
+// Generate a hash for deduplication
+function hashRow(date: string, amount: number, description: string): string {
+  const str = `${date}|${amount.toFixed(2)}|${description.toLowerCase().trim()}`;
+  // Simple hash function
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString(16);
+}
 import {
   Select,
   SelectContent,
@@ -20,13 +61,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 
 interface ParsedRow {
   date: string;
   description: string;
   amount: number;
   merchant?: string;
+  hash: string;
   raw: Record<string, string>;
 }
 
@@ -54,6 +95,7 @@ export default function ImportPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  const [skippedCount, setSkippedCount] = useState(0);
   
   useEffect(() => {
     getAccounts().then(setAccounts);
@@ -88,8 +130,14 @@ export default function ImportPage() {
       }).filter(row => row.some(cell => cell.length > 0));
       
       if (rows.length > 0) {
-        setHeaders(rows[0]);
+        const detectedHeaders = rows[0];
+        setHeaders(detectedHeaders);
         setCsvData(rows.slice(1));
+        
+        // Auto-detect column mappings
+        const detected = autoDetectMapping(detectedHeaders);
+        setMapping(detected);
+        
         setStep('map');
       }
     };
@@ -121,11 +169,15 @@ export default function ImportPage() {
         }
       }
       
+      const date = row[dateIdx] || '';
+      const description = row[descIdx] || '';
+      
       return {
-        date: row[dateIdx] || '',
-        description: row[descIdx] || '',
+        date,
+        description,
         amount,
         merchant: merchantIdx >= 0 ? row[merchantIdx] : undefined,
+        hash: hashRow(date, amount, description),
         raw: rawObj,
       };
     }).filter(row => row.date && row.description && !isNaN(row.amount));
@@ -146,11 +198,13 @@ export default function ImportPage() {
         description: row.description,
         merchant: row.merchant,
         currency: selectedAccount?.currency || 'EUR',
+        externalId: row.hash, // For deduplication
       }));
       
-      await importTransactions(transactions);
+      const result = await importTransactionsWithDedup(transactions);
       
-      setImportedCount(parsedRows.length);
+      setImportedCount(result.imported);
+      setSkippedCount(result.skipped);
       setStep('complete');
     } catch (error) {
       console.error('Import failed:', error);
@@ -444,15 +498,31 @@ export default function ImportPage() {
           <CardContent className="py-12 text-center">
             <div className="text-5xl mb-4">✅</div>
             <h2 className="text-2xl font-display mb-2">Import Complete!</h2>
-            <p className="text-muted-foreground mb-6">
-              Successfully imported {importedCount} transactions.
-            </p>
+            <div className="flex justify-center gap-4 mb-6">
+              <div className="text-center">
+                <p className="text-3xl font-semibold text-emerald-500">{importedCount}</p>
+                <p className="text-sm text-muted-foreground">imported</p>
+              </div>
+              {skippedCount > 0 && (
+                <div className="text-center">
+                  <p className="text-3xl font-semibold text-muted-foreground">{skippedCount}</p>
+                  <p className="text-sm text-muted-foreground">duplicates skipped</p>
+                </div>
+              )}
+            </div>
+            {skippedCount > 0 && (
+              <p className="text-sm text-muted-foreground mb-6">
+                {skippedCount} transactions were already in the database and skipped.
+              </p>
+            )}
             <div className="flex justify-center gap-3">
               <Button variant="outline" onClick={() => {
                 setStep('upload');
                 setCsvData([]);
                 setHeaders([]);
                 setParsedRows([]);
+                setSkippedCount(0);
+                setImportedCount(0);
               }}>
                 Import More
               </Button>

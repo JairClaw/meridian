@@ -185,6 +185,64 @@ export async function importTransactions(transactions: Array<{
   return results;
 }
 
+export async function importTransactionsWithDedup(transactions: Array<{
+  accountId: number;
+  date: string;
+  amountCents: number;
+  description: string;
+  merchant?: string;
+  currency?: string;
+  externalId?: string;
+}>) {
+  // Get existing external IDs for deduplication
+  const existingTxs = await db.select({ externalId: schema.transactions.externalId })
+    .from(schema.transactions)
+    .where(sql`${schema.transactions.externalId} IS NOT NULL`);
+  
+  const existingHashes = new Set(existingTxs.map(t => t.externalId));
+  
+  // Filter out duplicates
+  const newTransactions = transactions.filter(t => 
+    t.externalId && !existingHashes.has(t.externalId)
+  );
+  
+  const skipped = transactions.length - newTransactions.length;
+  
+  if (newTransactions.length === 0) {
+    revalidatePath('/transactions');
+    return { imported: 0, skipped };
+  }
+  
+  // Insert new transactions
+  await db.insert(schema.transactions).values(
+    newTransactions.map(t => ({
+      ...t,
+      importSource: 'csv',
+    }))
+  );
+  
+  // Update account balances
+  const accountTotals = newTransactions.reduce((acc, t) => {
+    acc[t.accountId] = (acc[t.accountId] || 0) + t.amountCents;
+    return acc;
+  }, {} as Record<number, number>);
+  
+  for (const [accountId, total] of Object.entries(accountTotals)) {
+    await db.update(schema.accounts)
+      .set({ 
+        currentBalance: sql`${schema.accounts.currentBalance} + ${total}`,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.accounts.id, Number(accountId)));
+  }
+  
+  revalidatePath('/transactions');
+  revalidatePath('/accounts');
+  revalidatePath('/');
+  
+  return { imported: newTransactions.length, skipped };
+}
+
 // ============ CATEGORIES ============
 
 export async function getCategories() {
