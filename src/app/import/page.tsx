@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { importTransactions, getAccounts } from '@/lib/actions';
+import type { Account } from '@/db/schema';
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ interface ColumnMapping {
   description: string;
   amount: string;
   merchant?: string;
+  direction?: string; // IN/OUT for sign
 }
 
 export default function ImportPage() {
@@ -45,11 +47,17 @@ export default function ImportPage() {
     description: '',
     amount: '',
     merchant: '',
+    direction: '',
   });
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [accountId, setAccountId] = useState<string>('');
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  
+  useEffect(() => {
+    getAccounts().then(setAccounts);
+  }, []);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,8 +107,19 @@ export default function ImportPage() {
       const descIdx = headers.indexOf(mapping.description);
       const amountIdx = headers.indexOf(mapping.amount);
       const merchantIdx = mapping.merchant ? headers.indexOf(mapping.merchant) : -1;
+      const directionIdx = mapping.direction ? headers.indexOf(mapping.direction) : -1;
       
       let amount = parseFloat(row[amountIdx]?.replace(/[^0-9.-]/g, '') || '0');
+      
+      // Handle direction (IN = positive, OUT = negative)
+      if (directionIdx >= 0) {
+        const direction = row[directionIdx]?.toUpperCase();
+        if (direction === 'OUT' && amount > 0) {
+          amount = -amount;
+        } else if (direction === 'IN' && amount < 0) {
+          amount = Math.abs(amount);
+        }
+      }
       
       return {
         date: row[dateIdx] || '',
@@ -118,20 +137,18 @@ export default function ImportPage() {
   const handleImport = async () => {
     setImporting(true);
     
-    // In a real app, this would call the server action
-    // For now, we'll simulate the import
     try {
+      const selectedAccount = accounts.find(a => a.id === parseInt(accountId));
       const transactions = parsedRows.map(row => ({
         accountId: parseInt(accountId),
         date: formatDate(row.date),
         amountCents: Math.round(row.amount * 100),
         description: row.description,
         merchant: row.merchant,
-        currency: 'EUR',
+        currency: selectedAccount?.currency || 'EUR',
       }));
       
-      // Simulated import - replace with actual API call
-      console.log('Would import:', transactions);
+      await importTransactions(transactions);
       
       setImportedCount(parsedRows.length);
       setStep('complete');
@@ -284,17 +301,33 @@ export default function ImportPage() {
               
               <div className="space-y-2">
                 <label className="text-sm font-medium">Merchant Column (optional)</label>
-                <Select value={mapping.merchant || ''} onValueChange={(v) => setMapping({ ...mapping, merchant: v })}>
+                <Select value={mapping.merchant || '__none__'} onValueChange={(v) => setMapping({ ...mapping, merchant: v === '__none__' ? '' : v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {headers.map((h) => (
                       <SelectItem key={h} value={h}>{h}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Direction Column (optional)</label>
+                <Select value={mapping.direction || '__none__'} onValueChange={(v) => setMapping({ ...mapping, direction: v === '__none__' ? '' : v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {headers.map((h) => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Use for Wise exports (IN/OUT)</p>
               </div>
             </div>
 
@@ -358,8 +391,11 @@ export default function ImportPage() {
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Main Checking (BBVA)</SelectItem>
-                  <SelectItem value="2">Savings (BBVA)</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id.toString()}>
+                      {account.name} ({account.currency})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
