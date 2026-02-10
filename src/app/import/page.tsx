@@ -185,28 +185,30 @@ export default function ImportPage() {
       let amount = parseFloat(row[amountIdx]?.replace(/[^0-9.-]/g, '') || '0');
       
       // Handle direction (IN = positive, OUT = negative, NEUTRAL = skip or 0)
-      if (directionIdx >= 0) {
-        const direction = row[directionIdx]?.trim().toUpperCase();
-        if (direction === 'OUT') {
-          // Expenses are negative
-          amount = -Math.abs(amount);
-        } else if (direction === 'IN') {
-          // Income is positive
-          amount = Math.abs(amount);
-        } else if (direction === 'NEUTRAL') {
-          // Currency conversions - set to 0 (or could skip)
-          amount = 0;
-        }
+      const direction = directionIdx >= 0 ? row[directionIdx]?.trim().toUpperCase() : '';
+      if (direction === 'OUT') {
+        amount = -Math.abs(amount);
+      } else if (direction === 'IN') {
+        amount = Math.abs(amount);
+      } else if (direction === 'NEUTRAL') {
+        amount = 0;
       }
       
       const date = row[dateIdx] || '';
-      const description = row[descIdx] || '';
+      let description = row[descIdx] || '';
+      const merchant = merchantIdx >= 0 ? row[merchantIdx] : undefined;
+      
+      // Wise-specific: for OUT transactions, description is often empty but merchant has the payee
+      // Use merchant as description fallback
+      if (!description && merchant) {
+        description = merchant;
+      }
       
       return {
         date,
         description,
         amount,
-        merchant: merchantIdx >= 0 ? row[merchantIdx] : undefined,
+        merchant,
         hash: hashRow(date, amount, description),
         raw: rawObj,
       };
@@ -416,9 +418,79 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Preview of first few rows */}
+            {/* Mapping Preview - shows how data will be transformed */}
+            {mapping.date && mapping.description && mapping.amount && (
+              <div>
+                <p className="text-sm font-medium mb-2">📋 Mapping Preview (first 5 transactions)</p>
+                <p className="text-xs text-muted-foreground mb-3">This is how your data will be imported:</p>
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gold-500/10">
+                        <TableHead className="whitespace-nowrap">Date</TableHead>
+                        <TableHead className="whitespace-nowrap">Description</TableHead>
+                        <TableHead className="whitespace-nowrap">Merchant</TableHead>
+                        <TableHead className="whitespace-nowrap">Direction</TableHead>
+                        <TableHead className="whitespace-nowrap text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {csvData.slice(0, 5).map((row, i) => {
+                        const dateIdx = headers.indexOf(mapping.date);
+                        const descIdx = headers.indexOf(mapping.description);
+                        const amountIdx = headers.indexOf(mapping.amount);
+                        const merchantIdx = mapping.merchant ? headers.indexOf(mapping.merchant) : -1;
+                        const directionIdx = mapping.direction ? headers.indexOf(mapping.direction) : -1;
+                        
+                        let amount = parseFloat(row[amountIdx]?.replace(/[^0-9.-]/g, '') || '0');
+                        const direction = directionIdx >= 0 ? row[directionIdx]?.trim().toUpperCase() : '';
+                        
+                        if (direction === 'OUT') amount = -Math.abs(amount);
+                        else if (direction === 'IN') amount = Math.abs(amount);
+                        else if (direction === 'NEUTRAL') amount = 0;
+                        
+                        const isSkipped = amount === 0;
+                        const merchant = merchantIdx >= 0 ? row[merchantIdx] : '';
+                        let description = row[descIdx] || '';
+                        // Wise fallback: use merchant as description if empty
+                        if (!description && merchant) description = merchant;
+                        
+                        return (
+                          <TableRow key={i} className={isSkipped ? 'opacity-50 line-through' : ''}>
+                            <TableCell className="whitespace-nowrap font-mono text-sm">
+                              {row[dateIdx]?.split(' ')[0] || '-'}
+                            </TableCell>
+                            <TableCell className="max-w-48 truncate">
+                              {description || '-'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {merchant || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {direction ? (
+                                <Badge variant={direction === 'IN' ? 'default' : direction === 'OUT' ? 'destructive' : 'secondary'} className="text-xs">
+                                  {direction}
+                                </Badge>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className={`text-right tabular-nums font-medium ${amount > 0 ? 'text-emerald-500' : amount < 0 ? 'text-rose-500' : 'text-muted-foreground'}`}>
+                              {isSkipped ? 'SKIP' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' }).format(amount)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Rows with NEUTRAL direction or €0.00 amount will be skipped
+                </p>
+              </div>
+            )}
+
+            {/* Raw CSV Preview */}
             <div>
-              <p className="text-sm font-medium mb-2">Preview (first 5 rows)</p>
+              <p className="text-sm font-medium mb-2">Raw CSV (first 5 rows)</p>
               <div className="overflow-x-auto rounded-lg border border-border">
                 <Table>
                   <TableHeader>
