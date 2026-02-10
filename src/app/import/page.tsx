@@ -25,12 +25,27 @@ function autoDetectMapping(headers: string[]): {
     return '';
   };
   
+  // Find exact match first, then partial
+  const findExactOrPartial = (patterns: string[]): string => {
+    // Try exact match first
+    for (const pattern of patterns) {
+      const idx = lowerHeaders.findIndex(h => h === pattern);
+      if (idx >= 0) return headers[idx];
+    }
+    // Then try partial match
+    for (const pattern of patterns) {
+      const idx = lowerHeaders.findIndex(h => h.includes(pattern));
+      if (idx >= 0) return headers[idx];
+    }
+    return '';
+  };
+  
   return {
     date: findMatch(['created on', 'date', 'posted', 'transaction date', 'time']),
     description: findMatch(['reference', 'description', 'memo', 'note', 'details', 'narrative']),
     amount: findMatch(['target amount', 'amount', 'value', 'sum', 'total', 'debit', 'credit']),
     merchant: findMatch(['target name', 'merchant', 'payee', 'vendor', 'recipient', 'beneficiary', 'counterparty']),
-    direction: findMatch(['direction', 'type', 'in/out', 'transaction type']),
+    direction: findExactOrPartial(['direction', 'type', 'in/out', 'transaction type']),
   };
 }
 
@@ -159,13 +174,18 @@ export default function ImportPage() {
       
       let amount = parseFloat(row[amountIdx]?.replace(/[^0-9.-]/g, '') || '0');
       
-      // Handle direction (IN = positive, OUT = negative)
+      // Handle direction (IN = positive, OUT = negative, NEUTRAL = skip or 0)
       if (directionIdx >= 0) {
-        const direction = row[directionIdx]?.toUpperCase();
-        if (direction === 'OUT' && amount > 0) {
-          amount = -amount;
-        } else if (direction === 'IN' && amount < 0) {
+        const direction = row[directionIdx]?.trim().toUpperCase();
+        if (direction === 'OUT') {
+          // Expenses are negative
+          amount = -Math.abs(amount);
+        } else if (direction === 'IN') {
+          // Income is positive
           amount = Math.abs(amount);
+        } else if (direction === 'NEUTRAL') {
+          // Currency conversions - set to 0 (or could skip)
+          amount = 0;
         }
       }
       
@@ -180,7 +200,7 @@ export default function ImportPage() {
         hash: hashRow(date, amount, description),
         raw: rawObj,
       };
-    }).filter(row => row.date && row.description && !isNaN(row.amount));
+    }).filter(row => row.date && row.description && !isNaN(row.amount) && row.amount !== 0);
     
     setParsedRows(parsed);
     setStep('preview');
