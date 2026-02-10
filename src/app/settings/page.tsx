@@ -156,7 +156,7 @@ export default async function SettingsPage() {
           </div>
           
           <p className="text-sm text-muted-foreground">
-            A sophisticated personal finance tracker with a JP Morgan-inspired design aesthetic. 
+            A sophisticated personal finance tracker with a elegant, wealth-management inspired design aesthetic. 
             Built with Next.js, TypeScript, SQLite, and Tailwind CSS.
           </p>
           

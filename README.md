@@ -1,6 +1,6 @@
 # Meridian 💰
 
-A sophisticated personal finance tracker with a JP Morgan-inspired design aesthetic.
+A sophisticated personal finance tracker with an elegant, wealth-management inspired design.
 
 ## Features
 
@@ -74,7 +74,7 @@ meridian/
 
 ## Design System
 
-JP Morgan-inspired aesthetic:
+Refined wealth-management aesthetic:
 - Deep navy (`#0A1628`) with gold accents (`#C9A227`)
 - Elegant serif headings (Cormorant Garamond)
 - Clean sans-serif body (DM Sans)
