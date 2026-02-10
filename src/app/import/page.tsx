@@ -180,6 +180,8 @@ export default function ImportPage() {
   const [filename, setFilename] = useState<string>('');
   const [deleting, setDeleting] = useState<number | null>(null);
   const [preserveBalance, setPreserveBalance] = useState(false);
+  const [hasHeaderRow, setHasHeaderRow] = useState(true);
+  const [rawRows, setRawRows] = useState<string[][]>([]); // Store raw parsed rows before header detection
   
   const loadData = useCallback(() => {
     getAccounts().then(setAccounts);
@@ -210,13 +212,33 @@ export default function ImportPage() {
         .filter(row => row.some(cell => cell.length > 0));
       
       if (rows.length > 0) {
-        const detectedHeaders = rows[0];
-        setHeaders(detectedHeaders);
-        setCsvData(rows.slice(1));
+        setRawRows(rows);
         
-        // Auto-detect column mappings
-        const detected = autoDetectMapping(detectedHeaders);
-        setMapping(detected);
+        // Check if first row looks like a header (contains text, not just dates/numbers)
+        const firstRow = rows[0];
+        const looksLikeHeader = firstRow.some(cell => {
+          const trimmed = cell.trim();
+          // If it contains letters and isn't a date format, likely a header
+          if (/[a-zA-Z]{3,}/.test(trimmed) && !/^\d{2}\/\d{2}\/\d{4}/.test(trimmed)) {
+            return true;
+          }
+          return false;
+        });
+        
+        setHasHeaderRow(looksLikeHeader);
+        
+        if (looksLikeHeader) {
+          setHeaders(firstRow);
+          setCsvData(rows.slice(1));
+          const detected = autoDetectMapping(firstRow);
+          setMapping(detected);
+        } else {
+          // Generate column names
+          const generatedHeaders = firstRow.map((_, i) => `Column ${i + 1}`);
+          setHeaders(generatedHeaders);
+          setCsvData(rows);
+          setMapping({ date: '', description: '', amount: '', merchant: '', direction: '' });
+        }
         
         setStep('map');
       }
@@ -398,6 +420,34 @@ export default function ImportPage() {
             <CardDescription>Tell us which columns contain which data</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Header row toggle */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <input
+                type="checkbox"
+                id="has-header"
+                checked={hasHeaderRow}
+                onChange={(e) => {
+                  const newHasHeader = e.target.checked;
+                  setHasHeaderRow(newHasHeader);
+                  if (newHasHeader) {
+                    setHeaders(rawRows[0]);
+                    setCsvData(rawRows.slice(1));
+                    const detected = autoDetectMapping(rawRows[0]);
+                    setMapping(detected);
+                  } else {
+                    const generatedHeaders = rawRows[0].map((_, i) => `Column ${i + 1}`);
+                    setHeaders(generatedHeaders);
+                    setCsvData(rawRows);
+                    setMapping({ date: '', description: '', amount: '', merchant: '', direction: '' });
+                  }
+                }}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <label htmlFor="has-header" className="text-sm cursor-pointer">
+                First row contains column headers
+              </label>
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date Column *</label>
@@ -406,7 +456,7 @@ export default function ImportPage() {
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map((h) => (
+                    {headers.filter(h => h.trim()).map((h) => (
                       <SelectItem key={h} value={h}>{h}</SelectItem>
                     ))}
                   </SelectContent>
@@ -420,7 +470,7 @@ export default function ImportPage() {
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map((h) => (
+                    {headers.filter(h => h.trim()).map((h) => (
                       <SelectItem key={h} value={h}>{h}</SelectItem>
                     ))}
                   </SelectContent>
@@ -434,7 +484,7 @@ export default function ImportPage() {
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map((h) => (
+                    {headers.filter(h => h.trim()).map((h) => (
                       <SelectItem key={h} value={h}>{h}</SelectItem>
                     ))}
                   </SelectContent>
@@ -449,7 +499,7 @@ export default function ImportPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">None</SelectItem>
-                    {headers.map((h) => (
+                    {headers.filter(h => h.trim()).map((h) => (
                       <SelectItem key={h} value={h}>{h}</SelectItem>
                     ))}
                   </SelectContent>
@@ -464,7 +514,7 @@ export default function ImportPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">None</SelectItem>
-                    {headers.map((h) => (
+                    {headers.filter(h => h.trim()).map((h) => (
                       <SelectItem key={h} value={h}>{h}</SelectItem>
                     ))}
                   </SelectContent>
@@ -699,9 +749,11 @@ export default function ImportPage() {
                 setCsvData([]);
                 setHeaders([]);
                 setParsedRows([]);
+                setRawRows([]);
                 setSkippedCount(0);
                 setImportedCount(0);
                 setPreserveBalance(false);
+                setHasHeaderRow(true);
               }}>
                 Import More
               </Button>
