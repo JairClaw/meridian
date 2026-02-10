@@ -28,7 +28,7 @@ export function TransactionFilters({ transactions, categories }: TransactionFilt
   const router = useRouter();
   const searchParams = useSearchParams();
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || 'all');
-  const [showRuleForm, setShowRuleForm] = useState(false);
+  const [ruleForTxId, setRuleForTxId] = useState<number | null>(null);
   const [rulePattern, setRulePattern] = useState('');
   const [ruleCategoryId, setRuleCategoryId] = useState('');
   const [creating, setCreating] = useState(false);
@@ -52,7 +52,14 @@ export function TransactionFilters({ transactions, categories }: TransactionFilt
 
   const handleCategoryChange = (value: string) => {
     setCategoryFilter(value);
-    setShowRuleForm(false);
+    setRuleForTxId(null);
+  };
+
+  const handleStartRule = (txId: number, merchant: string | null, description: string) => {
+    setRuleForTxId(txId);
+    // Use merchant if available, otherwise first part of description
+    setRulePattern(merchant || description.split(/[-\/]/)[0].trim());
+    setRuleCategoryId('');
   };
 
   const handleCreateRule = async () => {
@@ -64,7 +71,7 @@ export function TransactionFilters({ transactions, categories }: TransactionFilt
         categoryId: parseInt(ruleCategoryId),
         matchType: 'contains',
       });
-      setShowRuleForm(false);
+      setRuleForTxId(null);
       setRulePattern('');
       setRuleCategoryId('');
       router.refresh();
@@ -110,75 +117,6 @@ export function TransactionFilters({ transactions, categories }: TransactionFilt
         </span>
       </div>
 
-      {/* Quick Rule Creator for Uncategorized */}
-      {categoryFilter === 'uncategorized' && uncategorizedCount > 0 && (
-        <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-          {!showRuleForm ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-yellow-500">💡 Create a rule to auto-categorize</p>
-                <p className="text-sm text-muted-foreground">
-                  Set up patterns to automatically categorize similar transactions
-                </p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowRuleForm(true)}
-              >
-                Create Rule
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Quick Rule</p>
-              <div className="flex gap-3 items-end flex-wrap">
-                <div className="space-y-1 flex-1 min-w-48">
-                  <label className="text-xs text-muted-foreground">Pattern (e.g., merchant name)</label>
-                  <Input
-                    placeholder="Carrefour, Netflix, etc."
-                    value={rulePattern}
-                    onChange={(e) => setRulePattern(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1 w-48">
-                  <label className="text-xs text-muted-foreground">Category</label>
-                  <Select value={ruleCategoryId} onValueChange={setRuleCategoryId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                          {cat.icon} {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setShowRuleForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    size="sm"
-                    disabled={!rulePattern || !ruleCategoryId || creating}
-                    onClick={handleCreateRule}
-                    className="bg-gold-500 text-navy-950 hover:bg-gold-400"
-                  >
-                    {creating ? '...' : 'Create & Apply'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Transactions List */}
       {sortedDates.length === 0 ? (
         <div className="text-center py-12">
@@ -193,40 +131,91 @@ export function TransactionFilters({ transactions, categories }: TransactionFilt
               </p>
               <div className="space-y-2">
                 {groupedByDate[date].map(({ transaction, account, category }) => (
-                  <div 
-                    key={transaction.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        {category?.icon || (
-                          <span className="text-muted-foreground text-lg">?</span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {transaction.merchant || transaction.description}
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{account?.name}</span>
-                          {category ? (
-                            <Badge variant="outline" className="text-xs">
-                              {category.name}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500/50">
-                              Uncategorized
-                            </Badge>
+                  <div key={transaction.id}>
+                    <div 
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          {category?.icon || (
+                            <span className="text-muted-foreground text-lg">?</span>
                           )}
                         </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
+                            {transaction.merchant || transaction.description}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>{account?.name}</span>
+                            {category ? (
+                              <Badge variant="outline" className="text-xs">
+                                {category.name}
+                              </Badge>
+                            ) : (
+                              <button
+                                onClick={() => handleStartRule(transaction.id, transaction.merchant, transaction.description)}
+                                className="inline-flex items-center gap-1 text-xs text-yellow-500 border border-yellow-500/50 rounded px-2 py-0.5 hover:bg-yellow-500/10 transition-colors"
+                              >
+                                <span>💡</span> Create rule
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
+                      <p className={`font-semibold tabular-nums flex-shrink-0 ${
+                        transaction.amountCents > 0 ? 'text-emerald-500' : ''
+                      }`}>
+                        {transaction.amountCents > 0 ? '+' : ''}
+                        {formatCurrency(transaction.amountCents, transaction.currency)}
+                      </p>
                     </div>
-                    <p className={`font-semibold tabular-nums flex-shrink-0 ${
-                      transaction.amountCents > 0 ? 'text-emerald-500' : ''
-                    }`}>
-                      {transaction.amountCents > 0 ? '+' : ''}
-                      {formatCurrency(transaction.amountCents, transaction.currency)}
-                    </p>
+                    
+                    {/* Inline rule creator for this transaction */}
+                    {ruleForTxId === transaction.id && (
+                      <div className="ml-14 mr-4 mb-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                        <div className="flex gap-3 items-end flex-wrap">
+                          <div className="space-y-1 flex-1 min-w-32">
+                            <label className="text-xs text-muted-foreground">Pattern</label>
+                            <Input
+                              value={rulePattern}
+                              onChange={(e) => setRulePattern(e.target.value)}
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="space-y-1 w-40">
+                            <label className="text-xs text-muted-foreground">Category</label>
+                            <Select value={ruleCategoryId} onValueChange={setRuleCategoryId}>
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                                    {cat.icon} {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8"
+                            onClick={() => setRuleForTxId(null)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="h-8 bg-gold-500 text-navy-950 hover:bg-gold-400"
+                            disabled={!rulePattern || !ruleCategoryId || creating}
+                            onClick={handleCreateRule}
+                          >
+                            {creating ? '...' : 'Create'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
