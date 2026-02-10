@@ -81,6 +81,16 @@ Refined wealth-management aesthetic:
 - Dark mode by default
 - Subtle animations and hover states
 
+## UI Guidelines
+
+**No popups or modal dialogs.** They interrupt user flow and are considered poor UX.
+
+Instead use:
+- Inline forms that expand/collapse
+- Dedicated pages for complex workflows
+- Slide-out panels (if absolutely necessary)
+- Toast notifications for confirmations
+
 ## License
 
 MIT
