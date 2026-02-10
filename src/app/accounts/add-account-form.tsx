@@ -14,9 +14,9 @@ import {
 import { createAccount } from '@/lib/actions';
 
 const accountTypes = [
-  { value: 'checking', label: 'Checking Account' },
-  { value: 'savings', label: 'Savings Account' },
-  { value: 'investment', label: 'Investment Account' },
+  { value: 'checking', label: 'Checking' },
+  { value: 'savings', label: 'Savings' },
+  { value: 'investment', label: 'Investment' },
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'cash', label: 'Cash' },
   { value: 'mortgage', label: 'Mortgage' },
@@ -24,27 +24,26 @@ const accountTypes = [
 ];
 
 const currencies = [
-  { value: 'USD', label: 'USD' },
   { value: 'EUR', label: 'EUR' },
+  { value: 'USD', label: 'USD' },
   { value: 'GBP', label: 'GBP' },
-  { value: 'JPY', label: 'JPY' },
   { value: 'CHF', label: 'CHF' },
-  { value: 'CAD', label: 'CAD' },
-  { value: 'AUD', label: 'AUD' },
   { value: 'BTC', label: 'BTC' },
-  { value: 'ETH', label: 'ETH' },
 ];
 
-export function AddAccountForm() {
+interface AddAccountFormProps {
+  variant?: 'button' | 'inline';
+}
+
+export function AddAccountForm({ variant = 'button' }: AddAccountFormProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    type: '',
+    type: 'checking',
     currency: 'EUR',
     institution: '',
-    accountNumber: '',
     currentBalance: '',
   });
 
@@ -58,7 +57,6 @@ export function AddAccountForm() {
         type: formData.type,
         currency: formData.currency,
         institution: formData.institution || undefined,
-        accountNumber: formData.accountNumber || undefined,
         currentBalance: formData.currentBalance 
           ? Math.round(parseFloat(formData.currentBalance) * 100)
           : 0,
@@ -67,10 +65,9 @@ export function AddAccountForm() {
       setIsOpen(false);
       setFormData({
         name: '',
-        type: '',
+        type: 'checking',
         currency: 'EUR',
         institution: '',
-        accountNumber: '',
         currentBalance: '',
       });
       router.refresh();
@@ -82,6 +79,18 @@ export function AddAccountForm() {
   };
 
   if (!isOpen) {
+    if (variant === 'inline') {
+      return (
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors p-4"
+        >
+          <span className="w-6 h-6 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center text-xs">+</span>
+          Add account
+        </button>
+      );
+    }
+    
     return (
       <Button 
         onClick={() => setIsOpen(true)}
@@ -96,108 +105,99 @@ export function AddAccountForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="font-medium">New Account</p>
-        <Button 
-          type="button" 
-          variant="ghost" 
-          size="sm"
-          onClick={() => setIsOpen(false)}
-        >
-          Cancel
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Account Name *</label>
-          <Input
-            placeholder="e.g., Main Checking"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Type *</label>
-          <Select
-            value={formData.type}
-            onValueChange={(value) => setFormData({ ...formData, type: value })}
+    <div className={variant === 'inline' ? 'border-t border-border' : ''}>
+      <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">New Account</p>
+          <button 
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="text-sm text-muted-foreground hover:text-foreground"
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {accountTypes.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            Cancel
+          </button>
         </div>
         
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Currency *</label>
-          <Select
-            value={formData.currency}
-            onValueChange={(value) => setFormData({ ...formData, currency: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currencies.map((currency) => (
-                <SelectItem key={currency.value} value={currency.value}>
-                  {currency.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-1.5 col-span-2">
+            <label className="text-xs text-muted-foreground">Name</label>
+            <Input
+              placeholder="Account name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Type</label>
+            <Select
+              value={formData.type}
+              onValueChange={(value) => setFormData({ ...formData, type: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {accountTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Currency</label>
+            <Select
+              value={formData.currency}
+              onValueChange={(value) => setFormData({ ...formData, currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Institution</label>
+            <Input
+              placeholder="Bank name"
+              value={formData.institution}
+              onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+            />
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Balance</label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={formData.currentBalance}
+              onChange={(e) => setFormData({ ...formData, currentBalance: e.target.value })}
+            />
+          </div>
+          
+          <div className="col-span-2 flex justify-end items-end">
+            <Button 
+              type="submit" 
+              disabled={loading || !formData.name}
+              className="bg-gold-500 text-navy-950 hover:bg-gold-400"
+            >
+              {loading ? 'Adding...' : 'Add Account'}
+            </Button>
+          </div>
         </div>
-        
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Institution</label>
-          <Input
-            placeholder="e.g., BBVA, Chase"
-            value={formData.institution}
-            onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Last 4 Digits</label>
-          <Input
-            placeholder="1234"
-            maxLength={4}
-            value={formData.accountNumber}
-            onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value.replace(/\D/g, '') })}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground">Current Balance</label>
-          <Input
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={formData.currentBalance}
-            onChange={(e) => setFormData({ ...formData, currentBalance: e.target.value })}
-          />
-        </div>
-      </div>
-      
-      <div className="flex justify-end">
-        <Button 
-          type="submit" 
-          disabled={loading || !formData.name || !formData.type}
-          className="bg-gold-500 text-navy-950 hover:bg-gold-400"
-        >
-          {loading ? 'Adding...' : 'Add Account'}
-        </Button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

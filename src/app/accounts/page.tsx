@@ -135,6 +135,9 @@ export default async function AccountsPage() {
                   </Link>
                 );
               })}
+              
+              {/* Add account at bottom of list */}
+              <AddAccountForm variant="inline" />
             </div>
           )}
         </CardContent>

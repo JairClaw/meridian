@@ -55,13 +55,8 @@ export default async function SettingsPage() {
       {/* Categories */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="font-display">Categories</CardTitle>
-              <CardDescription>{categories.length} categories configured</CardDescription>
-            </div>
-            <AddCategoryForm />
-          </div>
+          <CardTitle className="font-display">Categories</CardTitle>
+          <CardDescription>{categories.length} categories configured</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Income Categories */}
@@ -97,6 +92,9 @@ export default async function SettingsPage() {
               ))}
             </div>
           </div>
+          
+          {/* Add Category - at bottom of list */}
+          <AddCategoryForm />
         </CardContent>
       </Card>
 

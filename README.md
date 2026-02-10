@@ -85,10 +85,15 @@ Refined wealth-management aesthetic:
 
 **No popups or modal dialogs.** They interrupt user flow and are considered poor UX.
 
-Instead use:
-- Inline forms that expand/collapse
+**Inline forms must be well-placed:**
+- Forms should appear in their own section, NOT crammed into card headers
+- Place "Add" forms at the bottom of the list they're adding to
+- Use a subtle "+" button or link, form expands below it
+- Give forms breathing room with proper padding and spacing
+
+Instead of dialogs, use:
+- Inline forms that expand/collapse in appropriate locations
 - Dedicated pages for complex workflows
-- Slide-out panels (if absolutely necessary)
 - Toast notifications for confirmations
 
 ## License
