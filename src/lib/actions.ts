@@ -841,3 +841,105 @@ export async function getTransactionsMatchingPattern(pattern: string) {
     return rawText.includes(lowerPattern) || normalizedText.includes(lowerPattern);
   });
 }
+
+// Analyze transactions to suggest potential subscriptions
+export async function getSuggestedSubscriptions() {
+  const transactions = await db.select()
+    .from(schema.transactions)
+    .orderBy(desc(schema.transactions.date));
+  
+  // Group by merchant/description pattern
+  const patterns: Record<string, {
+    merchant: string;
+    amounts: number[];
+    dates: string[];
+    accountId: number;
+  }> = {};
+  
+  for (const tx of transactions) {
+    if (tx.amountCents >= 0) continue; // Only expenses
+    
+    const merchant = (tx.merchant || tx.description || '')
+      .toLowerCase()
+      .replace(/\d{4,}/g, '')
+      .replace(/[*#]+/g, '')
+      .trim()
+      .split(/[-\/]/)[0]
+      .trim();
+    
+    if (merchant.length < 3) continue;
+    
+    if (!patterns[merchant]) {
+      patterns[merchant] = {
+        merchant: tx.merchant || tx.description,
+        amounts: [],
+        dates: [],
+        accountId: tx.accountId,
+      };
+    }
+    patterns[merchant].amounts.push(Math.abs(tx.amountCents));
+    patterns[merchant].dates.push(tx.date);
+  }
+  
+  const suggestions: Array<{
+    merchant: string;
+    avgAmount: number;
+    frequency: string;
+    confidence: number;
+    occurrences: number;
+    accountId: number;
+  }> = [];
+  
+  for (const [key, data] of Object.entries(patterns)) {
+    if (data.amounts.length < 2) continue;
+    
+    // Check if amounts are consistent (within 20% variance)
+    const avgAmount = data.amounts.reduce((a, b) => a + b, 0) / data.amounts.length;
+    const variance = data.amounts.every(a => Math.abs(a - avgAmount) / avgAmount < 0.2);
+    if (!variance) continue;
+    
+    // Analyze frequency
+    const sortedDates = data.dates.sort();
+    const gaps: number[] = [];
+    for (let i = 1; i < sortedDates.length; i++) {
+      const d1 = new Date(sortedDates[i - 1]);
+      const d2 = new Date(sortedDates[i]);
+      const daysDiff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+      gaps.push(daysDiff);
+    }
+    
+    if (gaps.length === 0) continue;
+    
+    const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    let frequency = '';
+    let confidence = 0;
+    
+    // Determine frequency
+    if (avgGap >= 25 && avgGap <= 35) {
+      frequency = 'monthly';
+      confidence = gaps.filter(g => g >= 25 && g <= 35).length / gaps.length;
+    } else if (avgGap >= 6 && avgGap <= 8) {
+      frequency = 'weekly';
+      confidence = gaps.filter(g => g >= 6 && g <= 8).length / gaps.length;
+    } else if (avgGap >= 350 && avgGap <= 380) {
+      frequency = 'yearly';
+      confidence = gaps.filter(g => g >= 350 && g <= 380).length / gaps.length;
+    }
+    
+    if (frequency && confidence >= 0.5) {
+      suggestions.push({
+        merchant: data.merchant,
+        avgAmount: Math.round(avgAmount),
+        frequency,
+        confidence,
+        occurrences: data.amounts.length,
+        accountId: data.accountId,
+      });
+    }
+  }
+  
+  // Sort by confidence and occurrences
+  return suggestions
+    .sort((a, b) => (b.confidence * b.occurrences) - (a.confidence * a.occurrences))
+    .slice(0, 15);
+}
