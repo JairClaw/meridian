@@ -142,15 +142,11 @@ export default async function DashboardPage() {
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Less</span>
               <div className="flex gap-[3px]">
-                {[0, 1, 2, 3, 4].map((level) => (
+                {['#EBEDF0', '#C6C6C6', '#8C8C8C', '#4A4A4A', '#1A1A1A'].map((color, i) => (
                   <div 
-                    key={level}
+                    key={i}
                     className="w-[10px] h-[10px] rounded-[2px]"
-                    style={{ 
-                      backgroundColor: level === 0 
-                        ? '#EBEDF0' 
-                        : `rgba(26, 26, 26, ${0.15 + level * 0.22})` 
-                    }}
+                    style={{ backgroundColor: color }}
                   />
                 ))}
               </div>
@@ -186,15 +182,12 @@ export default async function DashboardPage() {
                       const seed = Math.sin(weekIdx * 7 + dayIdx + 1) * 10000;
                       const rand = seed - Math.floor(seed);
                       const level = rand < 0.3 ? 0 : rand < 0.5 ? 1 : rand < 0.7 ? 2 : rand < 0.85 ? 3 : 4;
+                      const colors = ['#EBEDF0', '#C6C6C6', '#8C8C8C', '#4A4A4A', '#1A1A1A'];
                       return (
                         <div
                           key={dayIdx}
                           className="w-[10px] h-[10px] rounded-[2px]"
-                          style={{ 
-                            backgroundColor: level === 0 
-                              ? '#EBEDF0' 
-                              : `rgba(26, 26, 26, ${0.15 + level * 0.22})` 
-                          }}
+                          style={{ backgroundColor: colors[level] }}
                         />
                       );
                     })}
