@@ -79,6 +79,10 @@ export function CategoryRulesManager() {
         matchType: formData.matchType,
       });
       
+      // Auto-apply to categorize matching transactions immediately
+      const result = await applyCategorizationRules();
+      setApplyResult(result);
+      
       setShowAddForm(false);
       setFormData({ pattern: '', categoryId: '', matchType: 'contains' });
       setExpandedPattern(null);

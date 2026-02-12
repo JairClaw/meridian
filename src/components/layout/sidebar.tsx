@@ -88,7 +88,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card">
+    <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card sticky top-0 h-screen overflow-hidden">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6 border-b border-border">
         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-gold-500 to-gold-400">
@@ -105,7 +105,7 @@ export function Sidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-1">
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (

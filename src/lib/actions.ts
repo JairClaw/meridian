@@ -509,6 +509,21 @@ export async function deleteRecurringRule(id: number) {
   revalidatePath('/subscriptions');
 }
 
+export async function updateRecurringRule(id: number, data: {
+  name?: string;
+  amountCents?: number;
+  frequency?: string;
+  nextDate?: string;
+  categoryId?: number | null;
+  accountId?: number;
+}) {
+  await db.update(schema.recurringRules)
+    .set(data)
+    .where(eq(schema.recurringRules.id, id));
+  
+  revalidatePath('/subscriptions');
+}
+
 // ============ STATS ============
 
 export async function getDashboardStats() {
@@ -666,12 +681,14 @@ export async function updateCategoryRule(id: number, data: Partial<{
     .returning();
   
   revalidatePath('/settings');
+  revalidatePath('/settings/rules');
   return rule;
 }
 
 export async function deleteCategoryRule(id: number) {
   await db.delete(schema.categoryRules).where(eq(schema.categoryRules.id, id));
   revalidatePath('/settings');
+  revalidatePath('/settings/rules');
 }
 
 // Check if text matches a rule pattern
@@ -844,9 +861,15 @@ export async function getTransactionsMatchingPattern(pattern: string) {
 
 // Analyze transactions to suggest potential subscriptions
 export async function getSuggestedSubscriptions() {
-  const transactions = await db.select()
-    .from(schema.transactions)
-    .orderBy(desc(schema.transactions.date));
+  const [transactions, existingRules] = await Promise.all([
+    db.select().from(schema.transactions).orderBy(desc(schema.transactions.date)),
+    db.select().from(schema.recurringRules),
+  ]);
+  
+  // Get normalized names of existing subscriptions to exclude
+  const existingNames = new Set(
+    existingRules.map(r => r.name.toLowerCase().replace(/\s+/g, '').trim())
+  );
   
   // Group by merchant/description pattern
   const patterns: Record<string, {
@@ -938,8 +961,14 @@ export async function getSuggestedSubscriptions() {
     }
   }
   
+  // Filter out suggestions that match existing subscriptions
+  const filtered = suggestions.filter(s => {
+    const normalized = s.merchant.toLowerCase().replace(/\s+/g, '').trim();
+    return !existingNames.has(normalized);
+  });
+  
   // Sort by confidence and occurrences
-  return suggestions
+  return filtered
     .sort((a, b) => (b.confidence * b.occurrences) - (a.confidence * a.occurrences))
     .slice(0, 15);
 }

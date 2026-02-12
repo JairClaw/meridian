@@ -1,12 +1,16 @@
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getCategories } from '@/lib/actions';
-import { CategoryRulesManager } from './category-rules';
+import { getCategories, getCategoryRules, getUncategorizedCount } from '@/lib/actions';
 import { AddCategoryForm } from './add-category-form';
 
 export default async function SettingsPage() {
-  const categories = await getCategories();
+  const [categories, rules, uncategorizedCount] = await Promise.all([
+    getCategories(),
+    getCategoryRules(),
+    getUncategorizedCount(),
+  ]);
   
   const incomeCategories = categories.filter(c => c.isIncome);
   const expenseCategories = categories.filter(c => !c.isIncome);
@@ -99,7 +103,40 @@ export default async function SettingsPage() {
       </Card>
 
       {/* Auto-Categorization Rules */}
-      <CategoryRulesManager />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="font-display">Auto-Categorization Rules</CardTitle>
+              <CardDescription>
+                {rules.length} rules configured
+                {uncategorizedCount > 0 && (
+                  <span className="text-yellow-500 ml-2">• {uncategorizedCount} uncategorized</span>
+                )}
+              </CardDescription>
+            </div>
+            <Link href="/settings/rules">
+              <Button variant="outline" size="sm">
+                Manage Rules →
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {rules.slice(0, 10).map(({ rule, category }) => (
+              <Badge key={rule.id} variant="outline" className="gap-1.5">
+                <span className="font-mono text-xs">{rule.pattern}</span>
+                <span className="text-muted-foreground">→</span>
+                <span>{category?.icon}</span>
+              </Badge>
+            ))}
+            {rules.length > 10 && (
+              <Badge variant="secondary">+{rules.length - 10} more</Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Data Management */}
       <Card>
