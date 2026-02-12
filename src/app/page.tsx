@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { getDashboardStats, getTransactions, getDailySpending } from '@/lib/actions';
 import Link from 'next/link';
 import { SpendingActivityGrid } from '@/components/spending-activity-grid';
+import { AccountsGrid } from '@/components/accounts-grid';
 import { PrivateAmount } from '@/components/private-amount';
 
 function formatCurrency(cents: number, currency = 'EUR') {
@@ -140,35 +141,8 @@ export default async function DashboardPage() {
 
       {/* Bottom Section: Accounts & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Accounts */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="label-sm">ACCOUNTS</p>
-              <Link href="/accounts" className="text-sm text-[#10B981] hover:underline">
-                View all →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {accounts.slice(0, 4).map((account) => (
-                <div key={account.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#1A1A1A] text-white flex items-center justify-center text-sm font-medium">
-                      {account.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{account.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
-                    </div>
-                  </div>
-                  <p className={`font-semibold tabular-nums ${(account.currentBalance ?? 0) >= 0 ? '' : 'text-rose-500'}`}>
-                    <PrivateAmount>{formatCurrencyFull(account.currentBalance ?? 0, account.currency)}</PrivateAmount>
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Accounts Grid */}
+        <AccountsGrid accounts={accounts} />
 
         {/* Recent Transactions */}
         <Card className="border-0 shadow-sm">

@@ -1,6 +1,6 @@
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMonthlyTrends, getDashboardStats, getMonthlyIncomeExpenses } from '@/lib/actions';
-import { SpendingChart } from '@/components/charts/spending-chart';
+import { getMonthlyTrends, getDashboardStats, getWeeklyIncomeExpenses } from '@/lib/actions';
 import { MonthlyBreakdown } from './month-selector';
 import { IncomeExpensesChart } from '@/components/income-expenses-chart';
 
@@ -13,10 +13,17 @@ function formatCurrency(cents: number, currency = 'EUR') {
 }
 
 export default async function ReportsPage() {
-  const [trends, stats, monthlyData] = await Promise.all([
+  // Get date range for past 12 months
+  const now = new Date();
+  const yearAgo = new Date(now);
+  yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+  const startDate = `${yearAgo.getFullYear()}-${String(yearAgo.getMonth() + 1).padStart(2, '0')}-01`;
+  const endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`;
+  
+  const [trends, stats, weeklyData] = await Promise.all([
     getMonthlyTrends(6),
     getDashboardStats(),
-    getMonthlyIncomeExpenses(12),
+    getWeeklyIncomeExpenses(52),
   ]);
   
   const { netWorth, monthlyIncome, monthlyExpenses, savingsRate } = stats;
@@ -65,8 +72,8 @@ export default async function ReportsPage() {
         </Card>
       </div>
 
-      {/* Income vs Expenses Trend - Block Chart */}
-      <IncomeExpensesChart monthlyData={monthlyData} />
+      {/* Income vs Expenses - Full Width */}
+      <IncomeExpensesChart weeklyData={weeklyData} />
 
       {/* Monthly Breakdown with Month Selector */}
       <MonthlyBreakdown />
@@ -96,7 +103,11 @@ export default async function ReportsPage() {
                   
                   return (
                     <tr key={month.date} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-medium">{month.date}</td>
+                      <td className="py-3 px-4 font-medium">
+                        <Link href={`/transactions?from=${month.startDate}&to=${month.endDate}`} className="hover:text-[#10B981] transition-colors">
+                          {month.date} →
+                        </Link>
+                      </td>
                       <td className="py-3 px-4 text-right tabular-nums text-emerald-500">
                         {formatCurrency(month.income)}
                       </td>

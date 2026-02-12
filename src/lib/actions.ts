@@ -73,6 +73,8 @@ export async function updateAccount(id: number, data: Partial<{
   currentBalance: number;
   color: string;
   isActive: boolean;
+  linkedToAccountId: number | null;
+  hideFromDashboard: boolean;
 }>) {
   const [account] = await db.update(schema.accounts)
     .set({ ...data, updatedAt: new Date() })
@@ -100,6 +102,8 @@ export async function getTransactions(options?: {
   accountId?: number;
   startDate?: string;
   endDate?: string;
+  search?: string;
+  categoryId?: number | null; // null = uncategorized
   limit?: number;
   offset?: number;
 }) {
@@ -124,6 +128,20 @@ export async function getTransactions(options?: {
   
   if (options?.endDate) {
     query = query.where(lte(schema.transactions.date, options.endDate));
+  }
+  
+  if (options?.search) {
+    const searchTerm = `%${options.search}%`;
+    query = query.where(
+      sql`(${schema.transactions.description} LIKE ${searchTerm} OR ${schema.transactions.merchant} LIKE ${searchTerm})`
+    );
+  }
+  
+  // Category filter: null = uncategorized, number = specific category
+  if (options?.categoryId === null) {
+    query = query.where(sql`${schema.transactions.categoryId} IS NULL`);
+  } else if (options?.categoryId !== undefined) {
+    query = query.where(eq(schema.transactions.categoryId, options.categoryId));
   }
   
   if (options?.limit) {
@@ -573,7 +591,7 @@ export async function getDashboardStats() {
 }
 
 export async function getMonthlyTrends(months = 6) {
-  const results: Array<{ date: string; income: number; expenses: number }> = [];
+  const results: Array<{ date: string; startDate: string; endDate: string; income: number; expenses: number }> = [];
   const now = new Date();
   
   for (let i = months - 1; i >= 0; i--) {
@@ -598,6 +616,8 @@ export async function getMonthlyTrends(months = 6) {
     
     results.push({
       date: date.toLocaleDateString('en-US', { month: 'short' }),
+      startDate: startOfMonth,
+      endDate: endOfMonth,
       income,
       expenses,
     });
@@ -620,18 +640,21 @@ export async function getCategoryBreakdown(startDate?: string, endDate?: string)
     .where(and(
       gte(schema.transactions.date, start),
       lte(schema.transactions.date, end),
-      lte(schema.transactions.amountCents, 0) // Only expenses
+      lte(schema.transactions.amountCents, 0), // Only expenses
+      sql`(${schema.transactions.isTransfer} = 0 OR ${schema.transactions.isTransfer} IS NULL)` // Exclude transfers
     ));
   
   const categoryTotals = transactions.reduce((acc, { transaction, category }) => {
+    const id = category?.id || null;
     const name = category?.name || 'Uncategorized';
     const color = category?.color || '#6B7280';
-    if (!acc[name]) {
-      acc[name] = { name, value: 0, color };
+    const key = id?.toString() || 'uncategorized';
+    if (!acc[key]) {
+      acc[key] = { id, name, value: 0, color };
     }
-    acc[name].value += Math.abs(transaction.amountCents);
+    acc[key].value += Math.abs(transaction.amountCents);
     return acc;
-  }, {} as Record<string, { name: string; value: number; color: string }>);
+  }, {} as Record<string, { id: number | null; name: string; value: number; color: string }>);
   
   return Object.values(categoryTotals).sort((a, b) => b.value - a.value);
 }
@@ -973,7 +996,7 @@ export async function getSuggestedSubscriptions() {
     .slice(0, 15);
 }
 
-// Get daily spending totals for activity grid
+// Get daily spending totals for activity grid (excludes transfers)
 export async function getDailySpending() {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -984,7 +1007,7 @@ export async function getDailySpending() {
     amount: schema.transactions.amountCents,
   })
     .from(schema.transactions)
-    .where(sql`${schema.transactions.date} >= ${startDate} AND ${schema.transactions.amountCents} < 0`);
+    .where(sql`${schema.transactions.date} >= ${startDate} AND ${schema.transactions.amountCents} < 0 AND (${schema.transactions.isTransfer} = 0 OR ${schema.transactions.isTransfer} IS NULL)`);
   
   // Group by date and sum absolute spending
   // Normalize dates: some have timestamps (2026-02-05 05:23:16), extract just YYYY-MM-DD
@@ -998,7 +1021,41 @@ export async function getDailySpending() {
   return dailyTotals;
 }
 
-// Get monthly income/expenses for chart
+// Get weekly income/expenses for chart (excludes transfers)
+export async function getWeeklyIncomeExpenses(weeks = 52) {
+  const results: Array<{ week: string; startDate: string; endDate: string; income: number; expenses: number }> = [];
+  const now = new Date();
+  
+  for (let i = weeks - 1; i >= 0; i--) {
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() - (i * 7));
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 6);
+    
+    // Format as "Jan 1" for the week start
+    const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const startStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+    const endStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+    
+    const transactions = await db.select()
+      .from(schema.transactions)
+      .where(sql`${schema.transactions.date} >= ${startStr} AND ${schema.transactions.date} <= ${endStr} AND (${schema.transactions.isTransfer} = 0 OR ${schema.transactions.isTransfer} IS NULL)`);
+    
+    const income = transactions
+      .filter(t => t.amountCents > 0)
+      .reduce((sum, t) => sum + t.amountCents, 0);
+    
+    const expenses = Math.abs(transactions
+      .filter(t => t.amountCents < 0)
+      .reduce((sum, t) => sum + t.amountCents, 0));
+    
+    results.push({ week: weekLabel, startDate: startStr, endDate: endStr, income, expenses });
+  }
+  
+  return results;
+}
+
+// Get monthly income/expenses for chart (excludes transfers)
 export async function getMonthlyIncomeExpenses(months = 12) {
   const results: Array<{ month: string; income: number; expenses: number }> = [];
   const now = new Date();
@@ -1011,7 +1068,7 @@ export async function getMonthlyIncomeExpenses(months = 12) {
     
     const transactions = await db.select()
       .from(schema.transactions)
-      .where(sql`${schema.transactions.date} >= ${startOfMonth} AND ${schema.transactions.date} <= ${endOfMonth}`);
+      .where(sql`${schema.transactions.date} >= ${startOfMonth} AND ${schema.transactions.date} <= ${endOfMonth} AND (${schema.transactions.isTransfer} = 0 OR ${schema.transactions.isTransfer} IS NULL)`);
     
     const income = transactions
       .filter(t => t.amountCents > 0)
@@ -1025,4 +1082,174 @@ export async function getMonthlyIncomeExpenses(months = 12) {
   }
   
   return results;
+}
+
+// ============ TRANSFERS ============
+
+// Find probable transfers: matching amounts on same/nearby dates across different accounts
+export async function findProbableTransfers() {
+  // Get all transactions that are not already marked as transfers
+  const allTransactions = await db.select({
+    transaction: schema.transactions,
+    account: schema.accounts,
+  })
+    .from(schema.transactions)
+    .leftJoin(schema.accounts, eq(schema.transactions.accountId, schema.accounts.id))
+    .where(sql`(${schema.transactions.isTransfer} = 0 OR ${schema.transactions.isTransfer} IS NULL)`);
+  
+  const probableTransfers: Array<{
+    outgoing: { id: number; date: string; amount: number; description: string; accountName: string; accountId: number };
+    incoming: { id: number; date: string; amount: number; description: string; accountName: string; accountId: number };
+    confidence: 'high' | 'medium';
+  }> = [];
+  
+  // Group transactions by absolute amount
+  const byAmount = new Map<number, typeof allTransactions>();
+  for (const tx of allTransactions) {
+    const absAmount = Math.abs(tx.transaction.amountCents);
+    if (!byAmount.has(absAmount)) byAmount.set(absAmount, []);
+    byAmount.get(absAmount)!.push(tx);
+  }
+  
+  // Find matching pairs
+  for (const [amount, txs] of byAmount) {
+    if (amount === 0) continue; // Skip zero amounts
+    
+    const outgoing = txs.filter(t => t.transaction.amountCents < 0);
+    const incoming = txs.filter(t => t.transaction.amountCents > 0);
+    
+    for (const out of outgoing) {
+      for (const inc of incoming) {
+        // Must be different accounts
+        if (out.transaction.accountId === inc.transaction.accountId) continue;
+        
+        // Check date proximity
+        const outDate = new Date(out.transaction.date.split(' ')[0]);
+        const incDate = new Date(inc.transaction.date.split(' ')[0]);
+        const daysDiff = Math.abs(outDate.getTime() - incDate.getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (daysDiff <= 3) {
+          probableTransfers.push({
+            outgoing: {
+              id: out.transaction.id,
+              date: out.transaction.date.split(' ')[0],
+              amount: out.transaction.amountCents,
+              description: out.transaction.description,
+              accountName: out.account?.name || 'Unknown',
+              accountId: out.transaction.accountId,
+            },
+            incoming: {
+              id: inc.transaction.id,
+              date: inc.transaction.date.split(' ')[0],
+              amount: inc.transaction.amountCents,
+              description: inc.transaction.description,
+              accountName: inc.account?.name || 'Unknown',
+              accountId: inc.transaction.accountId,
+            },
+            confidence: daysDiff === 0 ? 'high' : 'medium',
+          });
+        }
+      }
+    }
+  }
+  
+  // Sort by confidence and date
+  return probableTransfers.sort((a, b) => {
+    if (a.confidence !== b.confidence) return a.confidence === 'high' ? -1 : 1;
+    return new Date(b.outgoing.date).getTime() - new Date(a.outgoing.date).getTime();
+  });
+}
+
+// Mark a transaction pair as transfers and link them
+export async function markAsTransfer(outgoingId: number, incomingId: number) {
+  await db.update(schema.transactions)
+    .set({ isTransfer: true, linkedTransactionId: incomingId })
+    .where(eq(schema.transactions.id, outgoingId));
+  
+  await db.update(schema.transactions)
+    .set({ isTransfer: true, linkedTransactionId: outgoingId })
+    .where(eq(schema.transactions.id, incomingId));
+  
+  revalidatePath('/');
+  revalidatePath('/transactions');
+  revalidatePath('/reports');
+  revalidatePath('/settings');
+  
+  return { success: true };
+}
+
+// Mark a single transaction as transfer (for one-sided transfers like external account)
+export async function markSingleAsTransfer(transactionId: number, isTransfer: boolean) {
+  await db.update(schema.transactions)
+    .set({ isTransfer })
+    .where(eq(schema.transactions.id, transactionId));
+  
+  revalidatePath('/');
+  revalidatePath('/transactions');
+  revalidatePath('/reports');
+  
+  return { success: true };
+}
+
+// Get transfer statistics
+export async function getTransferStats() {
+  const transfers = await db.select()
+    .from(schema.transactions)
+    .where(eq(schema.transactions.isTransfer, true));
+  
+  const unmarkedProbable = await findProbableTransfers();
+  
+  return {
+    markedTransfers: transfers.length,
+    probableTransfers: unmarkedProbable.length,
+  };
+}
+
+// ============ IMPORT PROFILES ============
+
+export async function getImportProfiles() {
+  return db.select().from(schema.importProfiles).orderBy(schema.importProfiles.name);
+}
+
+export async function getImportProfile(id: number) {
+  const [profile] = await db.select().from(schema.importProfiles).where(eq(schema.importProfiles.id, id));
+  return profile;
+}
+
+export async function createImportProfile(data: {
+  name: string;
+  description?: string;
+  dateColumn: number;
+  descriptionColumn: number;
+  amountColumn: number;
+  merchantColumn?: number;
+  directionColumn?: number;
+  hasHeaders?: boolean;
+  dateFormat?: string;
+  amountInCents?: boolean;
+  negativeExpenses?: boolean;
+  defaultAccountId?: number;
+}) {
+  const [profile] = await db.insert(schema.importProfiles).values({
+    name: data.name,
+    description: data.description,
+    dateColumn: data.dateColumn,
+    descriptionColumn: data.descriptionColumn,
+    amountColumn: data.amountColumn,
+    merchantColumn: data.merchantColumn,
+    directionColumn: data.directionColumn,
+    hasHeaders: data.hasHeaders ?? true,
+    dateFormat: data.dateFormat ?? 'DD/MM/YYYY',
+    amountInCents: data.amountInCents ?? false,
+    negativeExpenses: data.negativeExpenses ?? true,
+    defaultAccountId: data.defaultAccountId,
+  }).returning();
+  
+  revalidatePath('/import');
+  return profile;
+}
+
+export async function deleteImportProfile(id: number) {
+  await db.delete(schema.importProfiles).where(eq(schema.importProfiles.id, id));
+  revalidatePath('/import');
 }

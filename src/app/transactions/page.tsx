@@ -25,11 +25,33 @@ function formatDate(dateStr: string) {
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; category?: string }>;
+  searchParams: Promise<{ date?: string; from?: string; to?: string; category?: string; q?: string }>;
 }) {
   const params = await searchParams;
+  
+  // Build query options based on filters
+  let txOptions: { startDate?: string; endDate?: string; limit?: number; search?: string; categoryId?: number | null } = {};
+  
+  // Check if any filter is active
+  const hasFilters = params.date || params.from || params.to || params.q || params.category;
+  
+  if (params.date) {
+    // Single date filter (from activity grid click)
+    txOptions = { startDate: params.date, endDate: params.date + ' 23:59:59' };
+  } else if (hasFilters) {
+    // Any filter active - fetch all matching
+    if (params.from) txOptions.startDate = params.from;
+    if (params.to) txOptions.endDate = params.to + ' 23:59:59';
+    if (params.q) txOptions.search = params.q;
+    if (params.category === 'uncategorized') txOptions.categoryId = null;
+    else if (params.category) txOptions.categoryId = parseInt(params.category);
+  } else {
+    // Default: recent 100 transactions
+    txOptions = { limit: 100 };
+  }
+  
   const [transactions, accounts, uncategorizedCount, categories] = await Promise.all([
-    getTransactions({ limit: 200 }),
+    getTransactions(txOptions),
     getAccounts(),
     getUncategorizedCount(),
     getCategories(),

@@ -2,14 +2,16 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getCategories, getCategoryRules, getUncategorizedCount } from '@/lib/actions';
+import { getCategories, getCategoryRules, getUncategorizedCount, getTransferStats } from '@/lib/actions';
 import { AddCategoryForm } from './add-category-form';
+import { TransferScanner } from '@/components/transfer-scanner';
 
 export default async function SettingsPage() {
-  const [categories, rules, uncategorizedCount] = await Promise.all([
+  const [categories, rules, uncategorizedCount, transferStats] = await Promise.all([
     getCategories(),
     getCategoryRules(),
     getUncategorizedCount(),
+    getTransferStats(),
   ]);
   
   const incomeCategories = categories.filter(c => c.isIncome);
@@ -137,6 +139,22 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transfer Scanner */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-display">Transfer Detection</h2>
+            <p className="text-sm text-muted-foreground">
+              {transferStats.markedTransfers} transfers marked
+              {transferStats.probableTransfers > 0 && (
+                <span className="text-yellow-500 ml-2">• {transferStats.probableTransfers} probable matches</span>
+              )}
+            </p>
+          </div>
+        </div>
+        <TransferScanner />
+      </div>
 
       {/* Data Management */}
       <Card>

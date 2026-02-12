@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getAccount, getTransactions } from '@/lib/actions';
+import { getAccount, getAccounts, getTransactions } from '@/lib/actions';
 import { EditAccountForm } from './edit-account-form';
+import { AccountLinking } from './account-linking';
 
 const accountTypeConfig: Record<string, { label: string; color: string; icon: string }> = {
   checking: { label: 'Checking', color: 'bg-blue-500/10 text-blue-500', icon: '💳' },
@@ -45,7 +46,10 @@ export default async function AccountDetailPage({
     notFound();
   }
   
-  const account = await getAccount(accountId);
+  const [account, allAccounts] = await Promise.all([
+    getAccount(accountId),
+    getAccounts(),
+  ]);
   
   if (!account) {
     notFound();
@@ -183,6 +187,9 @@ export default async function AccountDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Account Linking - collapsible advanced section */}
+      <AccountLinking account={account} allAccounts={allAccounts} />
     </div>
   );
 }

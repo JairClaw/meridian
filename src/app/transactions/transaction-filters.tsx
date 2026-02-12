@@ -30,6 +30,9 @@ export function TransactionFilters({ transactions, categories, initialDate }: Tr
   const searchParams = useSearchParams();
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || 'all');
   const [dateFilter, setDateFilter] = useState<string>(initialDate || '');
+  const [dateFrom, setDateFrom] = useState<string>(searchParams.get('from') || '');
+  const [dateTo, setDateTo] = useState<string>(searchParams.get('to') || '');
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('q') || '');
   const [ruleForTxId, setRuleForTxId] = useState<number | null>(null);
   const [rulePattern, setRulePattern] = useState('');
   const [ruleCategoryId, setRuleCategoryId] = useState('');
@@ -37,8 +40,19 @@ export function TransactionFilters({ transactions, categories, initialDate }: Tr
 
   // Filter transactions
   const filteredTransactions = transactions.filter(({ transaction, category }) => {
-    // Date filter - compare just the date part (handles timestamps like "2026-01-03 13:15:08")
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesDescription = transaction.description.toLowerCase().includes(query);
+      const matchesMerchant = transaction.merchant?.toLowerCase().includes(query);
+      if (!matchesDescription && !matchesMerchant) return false;
+    }
+    // Single date filter (from clicking on activity grid)
     if (dateFilter && !transaction.date.startsWith(dateFilter)) return false;
+    // Date range filter
+    const txDate = transaction.date.split(' ')[0]; // Get just YYYY-MM-DD
+    if (dateFrom && txDate < dateFrom) return false;
+    if (dateTo && txDate > dateTo) return false;
     // Category filter
     if (categoryFilter === 'all') return true;
     if (categoryFilter === 'uncategorized') return !category;
@@ -58,6 +72,13 @@ export function TransactionFilters({ transactions, categories, initialDate }: Tr
   const handleCategoryChange = (value: string) => {
     setCategoryFilter(value);
     setRuleForTxId(null);
+    // Apply filters immediately when category changes
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    if (value !== 'all') params.set('category', value);
+    router.push(`/transactions${params.toString() ? '?' + params.toString() : ''}`);
   };
 
   const handleStartRule = (txId: number, merchant: string | null, description: string) => {
@@ -97,50 +118,125 @@ export function TransactionFilters({ transactions, categories, initialDate }: Tr
 
   const uncategorizedCount = transactions.filter(t => !t.category).length;
 
+  const clearFilters = () => {
+    setSearchQuery('');
+    setDateFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setCategoryFilter('all');
+    router.push('/transactions');
+  };
+
+  const applyFilters = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    if (categoryFilter !== 'all') params.set('category', categoryFilter);
+    router.push(`/transactions${params.toString() ? '?' + params.toString() : ''}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      applyFilters();
+    }
+  };
+
+  const hasActiveFilters = searchQuery || dateFilter || dateFrom || dateTo || categoryFilter !== 'all';
+  const serverParams = searchParams.get('q') || searchParams.get('from') || searchParams.get('to');
+
   return (
     <div className="space-y-4">
-      {/* Filter Bar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm text-muted-foreground">Filter:</span>
-        
-        {/* Date filter pill */}
-        {dateFilter && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#10B981]/10 text-[#10B981] text-sm font-medium">
-            <span>📅 {formatDate(dateFilter)}</span>
-            <button 
-              onClick={() => {
-                setDateFilter('');
-                router.push('/transactions');
-              }}
-              className="hover:bg-[#10B981]/20 rounded-full p-0.5"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      {/* Search and Filters */}
+      <div className="flex flex-col gap-3">
+        {/* Search */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <Input
+              placeholder="Search transactions... (Enter to search all)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pl-10"
+            />
           </div>
-        )}
+          <Button onClick={applyFilters} variant="secondary">
+            Search
+          </Button>
+        </div>
         
-        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            <SelectItem value="uncategorized">
-              ⚪ Uncategorized ({uncategorizedCount})
-            </SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id.toString()}>
-                {cat.icon} {cat.name}
+        {/* Filter Row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Date range */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">From</span>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setDateFilter(''); }}
+              onKeyDown={handleKeyDown}
+              className="w-40"
+            />
+            <span className="text-sm text-muted-foreground">to</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setDateFilter(''); }}
+              onKeyDown={handleKeyDown}
+              className="w-40"
+            />
+          </div>
+          
+          {/* Single date filter pill (from activity grid click) */}
+          {dateFilter && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#10B981]/10 text-[#10B981] text-sm font-medium">
+              <span>📅 {formatDate(dateFilter)}</span>
+              <button 
+                onClick={() => {
+                  setDateFilter('');
+                  router.push('/transactions');
+                }}
+                className="hover:bg-[#10B981]/20 rounded-full p-0.5"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+          
+          {/* Category filter */}
+          <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              <SelectItem value="uncategorized">
+                ⚪ Uncategorized ({uncategorizedCount})
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <span className="text-sm text-muted-foreground">
-          {filteredTransactions.length} transactions
-        </span>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id.toString()}>
+                  {cat.icon} {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {/* Clear filters */}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          )}
+          
+          <span className="text-sm text-muted-foreground ml-auto">
+            {filteredTransactions.length} transactions
+          </span>
+        </div>
       </div>
 
       {/* Transactions List */}

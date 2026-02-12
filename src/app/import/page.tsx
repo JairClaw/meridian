@@ -4,8 +4,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { importTransactionsWithDedup, getAccounts, getImportBatches, deleteImportBatch, deleteAllTransactions } from '@/lib/actions';
-import type { Account, ImportBatch } from '@/db/schema';
+import { importTransactionsWithDedup, getAccounts, getImportBatches, deleteImportBatch, deleteAllTransactions, getImportProfiles, createImportProfile } from '@/lib/actions';
+import type { Account, ImportBatch, ImportProfile } from '@/db/schema';
+import { Input } from '@/components/ui/input';
 
 // Auto-detect column mappings based on common header names
 function autoDetectMapping(headers: string[]): {
@@ -182,15 +183,80 @@ export default function ImportPage() {
   const [preserveBalance, setPreserveBalance] = useState(false);
   const [hasHeaderRow, setHasHeaderRow] = useState(true);
   const [rawRows, setRawRows] = useState<string[][]>([]); // Store raw parsed rows before header detection
+  const [profiles, setProfiles] = useState<ImportProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+  const [showSaveProfile, setShowSaveProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   
   const loadData = useCallback(() => {
     getAccounts().then(setAccounts);
     getImportBatches().then(setBatches);
+    getImportProfiles().then(setProfiles);
   }, []);
   
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const applyProfile = (profileId: string) => {
+    setSelectedProfileId(profileId);
+    if (!profileId) return;
+    
+    const profile = profiles.find(p => p.id === parseInt(profileId));
+    if (!profile) return;
+    
+    // Apply profile settings
+    setHasHeaderRow(profile.hasHeaders);
+    
+    // Map column indices to header names
+    const colToHeader = (colIdx: number | null) => {
+      if (colIdx === null || colIdx < 0) return '';
+      return headers[colIdx] || '';
+    };
+    
+    setMapping({
+      date: colToHeader(profile.dateColumn),
+      description: colToHeader(profile.descriptionColumn),
+      amount: colToHeader(profile.amountColumn),
+      merchant: colToHeader(profile.merchantColumn),
+      direction: colToHeader(profile.directionColumn),
+    });
+    
+    // Set default account if profile has one
+    if (profile.defaultAccountId) {
+      setAccountId(profile.defaultAccountId.toString());
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!newProfileName.trim()) return;
+    
+    setSavingProfile(true);
+    try {
+      await createImportProfile({
+        name: newProfileName.trim(),
+        dateColumn: headers.indexOf(mapping.date),
+        descriptionColumn: headers.indexOf(mapping.description),
+        amountColumn: headers.indexOf(mapping.amount),
+        merchantColumn: mapping.merchant ? headers.indexOf(mapping.merchant) : undefined,
+        directionColumn: mapping.direction ? headers.indexOf(mapping.direction) : undefined,
+        hasHeaders: hasHeaderRow,
+        dateFormat: 'DD/MM/YYYY',
+        defaultAccountId: accountId ? parseInt(accountId) : undefined,
+      });
+      
+      // Reload profiles
+      const updatedProfiles = await getImportProfiles();
+      setProfiles(updatedProfiles);
+      setShowSaveProfile(false);
+      setNewProfileName('');
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -420,6 +486,28 @@ export default function ImportPage() {
             <CardDescription>Tell us which columns contain which data</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Import Profile Selector */}
+            {profiles.length > 0 && (
+              <div className="p-4 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Use Saved Profile</p>
+                    <p className="text-xs text-muted-foreground">Apply a previously saved column mapping</p>
+                  </div>
+                  <Select value={selectedProfileId} onValueChange={applyProfile}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select profile" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {profiles.map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
             {/* Header row toggle */}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
               <input
@@ -616,6 +704,51 @@ export default function ImportPage() {
                   </TableBody>
                 </Table>
               </div>
+            </div>
+
+            {/* Save Profile Section */}
+            <div className="p-4 rounded-lg border border-dashed border-border">
+              {!showSaveProfile ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Save this mapping as a profile?</p>
+                    <p className="text-xs text-muted-foreground">Reuse it for future imports from the same source</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowSaveProfile(true)}
+                    disabled={!mapping.date || !mapping.description || !mapping.amount}
+                  >
+                    Save Profile
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Input
+                      placeholder="Profile name (e.g. Wise EUR, La Caixa)"
+                      value={newProfileName}
+                      onChange={(e) => setNewProfileName(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      size="sm"
+                      onClick={handleSaveProfile}
+                      disabled={!newProfileName.trim() || savingProfile}
+                    >
+                      {savingProfile ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => { setShowSaveProfile(false); setNewProfileName(''); }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-3">

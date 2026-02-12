@@ -47,8 +47,8 @@ export function SpendingChart({ data }: SpendingChartProps) {
             fontSize: '12px',
           }}
           labelStyle={{ color: '#9CA3AF' }}
-          formatter={(value: number, name: string) => [
-            `€${(value / 100).toFixed(2)}`,
+          formatter={(value, name) => [
+            `€${((value as number) / 100).toFixed(2)}`,
             name === 'income' ? 'Income' : 'Expenses'
           ]}
         />

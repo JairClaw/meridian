@@ -49,7 +49,7 @@ export function BalanceChart({ data }: BalanceChartProps) {
             borderRadius: '8px',
             fontSize: '12px',
           }}
-          formatter={(value: number) => [`€${(value / 100).toFixed(2)}`, 'Balance']}
+          formatter={(value) => [`€${((value as number) / 100).toFixed(2)}`, 'Balance']}
         />
         <Bar dataKey="balance" radius={[0, 4, 4, 0]}>
           {data.map((entry, index) => (

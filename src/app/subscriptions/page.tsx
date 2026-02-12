@@ -92,7 +92,7 @@ export default async function SubscriptionsPage() {
             <div className="text-center py-12">
               <div className="text-4xl mb-4">🔄</div>
               <p className="text-muted-foreground mb-4">No subscriptions tracked yet.</p>
-              <AddSubscriptionForm accounts={accounts} />
+              <AddSubscriptionForm />
             </div>
           ) : (
             <div className="space-y-3">
