@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { getDashboardStats, getTransactions } from '@/lib/actions';
 import Link from 'next/link';
+import { SpendingActivityGrid } from '@/components/spending-activity-grid';
 
 function formatCurrency(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -133,78 +134,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Spending Activity - GitHub Style */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <p className="label-sm">SPENDING ACTIVITY</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Less</span>
-              <div className="flex gap-[3px]">
-                {['#EBEDF0', '#C6C6C6', '#8C8C8C', '#4A4A4A', '#1A1A1A'].map((color, i) => (
-                  <div 
-                    key={i}
-                    className="w-[10px] h-[10px] rounded-[2px]"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-muted-foreground">More</span>
-            </div>
-          </div>
-
-          {/* Month labels */}
-          <div className="flex mb-2 ml-8 text-xs text-muted-foreground">
-            {['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'].map((m) => (
-              <span key={m} className="flex-1">{m}</span>
-            ))}
-          </div>
-
-          {/* GitHub-style Activity Grid */}
-          <div className="flex gap-2">
-            {/* Day labels */}
-            <div className="flex flex-col justify-around text-xs text-muted-foreground pr-1" style={{ height: 82 }}>
-              <span>Mon</span>
-              <span>Wed</span>
-              <span>Fri</span>
-            </div>
-            
-            {/* Grid */}
-            <div className="flex-1 overflow-x-auto">
-              <div className="flex gap-[3px]" style={{ width: 'max-content' }}>
-                {/* 53 weeks */}
-                {Array.from({ length: 53 }).map((_, weekIdx) => (
-                  <div key={weekIdx} className="flex flex-col gap-[3px]">
-                    {/* 7 days */}
-                    {Array.from({ length: 7 }).map((_, dayIdx) => {
-                      // Generate spending intensity (0-4) with some randomness
-                      const seed = Math.sin(weekIdx * 7 + dayIdx + 1) * 10000;
-                      const rand = seed - Math.floor(seed);
-                      const level = rand < 0.3 ? 0 : rand < 0.5 ? 1 : rand < 0.7 ? 2 : rand < 0.85 ? 3 : 4;
-                      const colors = ['#EBEDF0', '#C6C6C6', '#8C8C8C', '#4A4A4A', '#1A1A1A'];
-                      return (
-                        <div
-                          key={dayIdx}
-                          className="w-[10px] h-[10px] rounded-[2px]"
-                          style={{ backgroundColor: colors[level] }}
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-baseline gap-3 mt-4 pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground">Total this year:</p>
-            <p className="text-xl font-semibold tabular-nums">
-              {formatCurrency(Math.abs(monthlyExpenses) * 12)}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <SpendingActivityGrid yearlyTotal={Math.abs(monthlyExpenses) * 12} />
 
       {/* Bottom Section: Accounts & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
