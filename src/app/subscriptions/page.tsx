@@ -3,6 +3,7 @@ import { getRecurringRules, getAccounts, getCategories } from '@/lib/actions';
 import { AddSubscriptionForm } from './add-subscription-form';
 import { SuggestedSubscriptions } from './suggested-subscriptions';
 import { SubscriptionCard } from './subscription-card';
+import { PrivateAmount } from '@/components/private-amount';
 
 function formatCurrency(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -65,7 +66,7 @@ export default async function SubscriptionsPage() {
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-semibold tabular-nums text-rose-500 font-display">
-              {formatCurrency(monthlyTotal)}
+              <PrivateAmount>{formatCurrency(monthlyTotal)}</PrivateAmount>
             </span>
           </CardContent>
         </Card>
@@ -75,7 +76,7 @@ export default async function SubscriptionsPage() {
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-semibold tabular-nums text-rose-500 font-display">
-              {formatCurrency(yearlyTotal)}
+              <PrivateAmount>{formatCurrency(yearlyTotal)}</PrivateAmount>
             </span>
           </CardContent>
         </Card>

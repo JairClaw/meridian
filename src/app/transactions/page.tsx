@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { getTransactions, getAccounts, getUncategorizedCount, getCategories } from '@/lib/actions';
 import { AddTransactionForm } from './add-transaction-form';
 import { TransactionFilters } from './transaction-filters';
+import { PrivateAmount } from '@/components/private-amount';
 
 function formatCurrency(cents: number, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
@@ -102,11 +103,13 @@ export default async function TransactionsPage({
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-semibold tabular-nums text-emerald-500 font-display">
-              {formatCurrency(
-                transactions
-                  .filter(t => t.transaction.amountCents > 0)
-                  .reduce((sum, t) => sum + t.transaction.amountCents, 0)
-              )}
+              <PrivateAmount>
+                {formatCurrency(
+                  transactions
+                    .filter(t => t.transaction.amountCents > 0)
+                    .reduce((sum, t) => sum + t.transaction.amountCents, 0)
+                )}
+              </PrivateAmount>
             </span>
           </CardContent>
         </Card>
@@ -116,11 +119,13 @@ export default async function TransactionsPage({
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-semibold tabular-nums text-rose-500 font-display">
-              {formatCurrency(
-                Math.abs(transactions
-                  .filter(t => t.transaction.amountCents < 0)
-                  .reduce((sum, t) => sum + t.transaction.amountCents, 0))
-              )}
+              <PrivateAmount>
+                {formatCurrency(
+                  Math.abs(transactions
+                    .filter(t => t.transaction.amountCents < 0)
+                    .reduce((sum, t) => sum + t.transaction.amountCents, 0))
+                )}
+              </PrivateAmount>
             </span>
           </CardContent>
         </Card>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { getAccount, getAccounts, getTransactions } from '@/lib/actions';
 import { EditAccountForm } from './edit-account-form';
 import { AccountLinking } from './account-linking';
+import { PrivateAmount } from '@/components/private-amount';
 
 const accountTypeConfig: Record<string, { label: string; color: string; icon: string }> = {
   checking: { label: 'Checking', color: 'bg-blue-500/10 text-blue-500', icon: '💳' },
@@ -99,7 +100,7 @@ export default async function AccountDetailPage({
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground mb-1">Current Balance</p>
           <p className={`text-4xl font-display font-semibold tabular-nums ${account.currentBalance < 0 ? 'text-rose-500' : 'text-white'}`}>
-            {formatCurrency(account.currentBalance, account.currency)}
+            <PrivateAmount>{formatCurrency(account.currentBalance, account.currency)}</PrivateAmount>
           </p>
           <p className="text-sm text-muted-foreground mt-2">{account.currency}</p>
         </CardContent>
@@ -111,7 +112,7 @@ export default async function AccountDetailPage({
           <CardContent className="pt-6">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Income</p>
             <p className="text-xl font-semibold tabular-nums text-emerald-500 font-display">
-              {formatCurrency(totalIncome, account.currency)}
+              <PrivateAmount>{formatCurrency(totalIncome, account.currency)}</PrivateAmount>
             </p>
           </CardContent>
         </Card>
@@ -119,7 +120,7 @@ export default async function AccountDetailPage({
           <CardContent className="pt-6">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Expenses</p>
             <p className="text-xl font-semibold tabular-nums font-display">
-              {formatCurrency(totalExpenses, account.currency)}
+              <PrivateAmount>{formatCurrency(totalExpenses, account.currency)}</PrivateAmount>
             </p>
           </CardContent>
         </Card>
@@ -177,8 +178,10 @@ export default async function AccountDetailPage({
                     <p className={`font-semibold tabular-nums ${
                       transaction.amountCents > 0 ? 'text-emerald-500' : ''
                     }`}>
-                      {transaction.amountCents > 0 ? '+' : ''}
-                      {formatCurrency(transaction.amountCents, transaction.currency)}
+                      <PrivateAmount>
+                        {transaction.amountCents > 0 ? '+' : ''}
+                        {formatCurrency(transaction.amountCents, transaction.currency)}
+                      </PrivateAmount>
                     </p>
                   </div>
                 </div>

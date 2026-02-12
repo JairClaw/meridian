@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PrivateAmount } from '@/components/private-amount';
 import { calculateMortgage, formatAmortizationDate, type AmortizationRow } from '@/lib/mortgage';
 
 function formatCurrency(cents: number, currency = 'EUR') {
@@ -134,21 +135,21 @@ export function MortgageCalculator() {
               <div className="p-4 rounded-lg bg-muted/30">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Monthly Payment</p>
                 <p className="text-2xl font-semibold tabular-nums font-display">
-                  {formatCurrency(calculation.monthlyPayment + parseFloat(inputs.extraPayment) * 100)}
+                  <PrivateAmount>{formatCurrency(calculation.monthlyPayment + parseFloat(inputs.extraPayment) * 100)}</PrivateAmount>
                 </p>
               </div>
               
               <div className="p-4 rounded-lg bg-muted/30">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Payment</p>
                 <p className="text-2xl font-semibold tabular-nums font-display">
-                  {formatCurrency(calculation.totalPayment)}
+                  <PrivateAmount>{formatCurrency(calculation.totalPayment)}</PrivateAmount>
                 </p>
               </div>
               
               <div className="p-4 rounded-lg bg-muted/30">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Total Interest</p>
                 <p className="text-2xl font-semibold tabular-nums font-display text-gold-500">
-                  {formatCurrency(calculation.totalInterest)}
+                  <PrivateAmount>{formatCurrency(calculation.totalInterest)}</PrivateAmount>
                 </p>
               </div>
               
@@ -167,7 +168,7 @@ export function MortgageCalculator() {
                 <div>
                   <p className="font-medium text-emerald-500">Extra payments save you money!</p>
                   <p className="text-sm text-muted-foreground">
-                    You&apos;ll save <span className="font-semibold text-emerald-500">{formatCurrency(comparisonWithExtra.interestSaved)}</span> in interest 
+                    You&apos;ll save <span className="font-semibold text-emerald-500"><PrivateAmount>{formatCurrency(comparisonWithExtra.interestSaved)}</PrivateAmount></span> in interest 
                     and pay off <span className="font-semibold text-emerald-500">{comparisonWithExtra.monthsSaved} months</span> earlier.
                   </p>
                 </div>

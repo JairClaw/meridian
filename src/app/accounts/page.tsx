@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { getAccounts } from '@/lib/actions';
 import { AddAccountForm } from './add-account-form';
+import { PrivateAmount } from '@/components/private-amount';
 
 const accountTypeConfig: Record<string, { label: string; color: string; icon: string }> = {
   checking: { label: 'Checking', color: 'bg-blue-500/10 text-blue-500', icon: '💳' },
@@ -59,7 +60,7 @@ export default async function AccountsPage() {
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-semibold tabular-nums text-emerald-500 font-display">
-              {formatCurrency(totalAssets)}
+              <PrivateAmount>{formatCurrency(totalAssets)}</PrivateAmount>
             </span>
           </CardContent>
         </Card>
@@ -69,7 +70,7 @@ export default async function AccountsPage() {
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-semibold tabular-nums text-rose-500 font-display">
-              {formatCurrency(totalLiabilities)}
+              <PrivateAmount>{formatCurrency(totalLiabilities)}</PrivateAmount>
             </span>
           </CardContent>
         </Card>
@@ -79,7 +80,7 @@ export default async function AccountsPage() {
           </CardHeader>
           <CardContent>
             <span className={`text-2xl font-semibold tabular-nums font-display ${totalAssets - totalLiabilities >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {formatCurrency(totalAssets - totalLiabilities)}
+              <PrivateAmount>{formatCurrency(totalAssets - totalLiabilities)}</PrivateAmount>
             </span>
           </CardContent>
         </Card>
@@ -128,7 +129,7 @@ export default async function AccountsPage() {
                     </div>
                     <div className="text-right">
                       <p className={`text-lg font-semibold tabular-nums ${isNegative ? 'text-rose-500' : ''}`}>
-                        {formatCurrency(account.currentBalance, account.currency)}
+                        <PrivateAmount>{formatCurrency(account.currentBalance, account.currency)}</PrivateAmount>
                       </p>
                       <p className="text-xs text-muted-foreground">{account.currency}</p>
                     </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PrivateAmount } from '@/components/private-amount';
 import { findProbableTransfers, markAsTransfer, getTransferStats } from '@/lib/actions';
 
 interface TransferPair {
@@ -157,7 +158,7 @@ export function TransferScanner() {
                           <span className="text-sm font-medium">{transfer.outgoing.accountName}</span>
                         </div>
                         <span className="text-sm font-semibold tabular-nums text-red-400">
-                          {formatCurrency(transfer.outgoing.amount)}
+                          <PrivateAmount>{formatCurrency(transfer.outgoing.amount)}</PrivateAmount>
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mb-1 line-clamp-2">
@@ -174,7 +175,7 @@ export function TransferScanner() {
                           <span className="text-sm font-medium">{transfer.incoming.accountName}</span>
                         </div>
                         <span className="text-sm font-semibold tabular-nums text-emerald-400">
-                          +{formatCurrency(transfer.incoming.amount)}
+                          <PrivateAmount>+{formatCurrency(transfer.incoming.amount)}</PrivateAmount>
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mb-1 line-clamp-2">

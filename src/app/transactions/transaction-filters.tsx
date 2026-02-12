@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PrivateAmount } from '@/components/private-amount';
 import { getCategories, createCategoryRule, applyCategorizationRules } from '@/lib/actions';
 import type { Category, Transaction, Account } from '@/db/schema';
 
@@ -287,8 +288,10 @@ export function TransactionFilters({ transactions, categories, initialDate }: Tr
                       <p className={`font-semibold tabular-nums flex-shrink-0 ${
                         transaction.amountCents > 0 ? 'text-emerald-500' : ''
                       }`}>
-                        {transaction.amountCents > 0 ? '+' : ''}
-                        {formatCurrency(transaction.amountCents, transaction.currency)}
+                        <PrivateAmount>
+                          {transaction.amountCents > 0 ? '+' : ''}
+                          {formatCurrency(transaction.amountCents, transaction.currency)}
+                        </PrivateAmount>
                       </p>
                     </div>
                     

@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PrivateAmount } from '@/components/private-amount';
 import { calculateMortgage } from '@/lib/mortgage';
 import type { Mortgage, Account } from '@/db/schema';
 
@@ -73,17 +74,17 @@ export function MortgageCard({ mortgage, account }: MortgageCardProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-muted-foreground">Original Amount</p>
-            <p className="font-semibold tabular-nums">{formatCurrency(mortgage.principalCents)}</p>
+            <p className="font-semibold tabular-nums"><PrivateAmount>{formatCurrency(mortgage.principalCents)}</PrivateAmount></p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Remaining</p>
             <p className="font-semibold tabular-nums text-rose-500">
-              {formatCurrency(Math.abs(account?.currentBalance || 0))}
+              <PrivateAmount>{formatCurrency(Math.abs(account?.currentBalance || 0))}</PrivateAmount>
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Monthly Payment</p>
-            <p className="font-semibold tabular-nums">{formatCurrency(mortgage.monthlyPaymentCents)}</p>
+            <p className="font-semibold tabular-nums"><PrivateAmount>{formatCurrency(mortgage.monthlyPaymentCents)}</PrivateAmount></p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Payoff Date</p>
@@ -99,11 +100,11 @@ export function MortgageCard({ mortgage, account }: MortgageCardProps) {
             <div>
               <p className="text-sm font-medium">This month&apos;s payment</p>
               <p className="text-xs text-muted-foreground">
-                <span className="text-emerald-500">{formatCurrency(currentPayment.principal)}</span> principal + 
-                <span className="text-gold-500 ml-1">{formatCurrency(currentPayment.interest)}</span> interest
+                <span className="text-emerald-500"><PrivateAmount>{formatCurrency(currentPayment.principal)}</PrivateAmount></span> principal + 
+                <span className="text-gold-500 ml-1"><PrivateAmount>{formatCurrency(currentPayment.interest)}</PrivateAmount></span> interest
               </p>
             </div>
-            <p className="font-semibold tabular-nums">{formatCurrency(currentPayment.payment)}</p>
+            <p className="font-semibold tabular-nums"><PrivateAmount>{formatCurrency(currentPayment.payment)}</PrivateAmount></p>
           </div>
         )}
       </CardContent>

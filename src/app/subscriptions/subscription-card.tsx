@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PrivateAmount } from '@/components/private-amount';
 import { deleteRecurringRule, updateRecurringRule } from '@/lib/actions';
 import type { RecurringRule, Account, Category } from '@/db/schema';
 
@@ -214,7 +215,7 @@ export function SubscriptionCard({ rule, account, category, categories, accounts
       </div>
       <div className="text-right">
         <p className="text-lg font-semibold tabular-nums">
-          {formatCurrency(Math.abs(rule.amountCents), rule.currency)}
+          <PrivateAmount>{formatCurrency(Math.abs(rule.amountCents), rule.currency)}</PrivateAmount>
         </p>
         <p className="text-xs text-muted-foreground">
           Next: {rule.nextDate}
