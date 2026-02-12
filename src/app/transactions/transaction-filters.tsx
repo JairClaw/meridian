@@ -37,8 +37,8 @@ export function TransactionFilters({ transactions, categories, initialDate }: Tr
 
   // Filter transactions
   const filteredTransactions = transactions.filter(({ transaction, category }) => {
-    // Date filter
-    if (dateFilter && transaction.date !== dateFilter) return false;
+    // Date filter - compare just the date part (handles timestamps like "2026-01-03 13:15:08")
+    if (dateFilter && !transaction.date.startsWith(dateFilter)) return false;
     // Category filter
     if (categoryFilter === 'all') return true;
     if (categoryFilter === 'uncategorized') return !category;
