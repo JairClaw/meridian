@@ -987,10 +987,12 @@ export async function getDailySpending() {
     .where(sql`${schema.transactions.date} >= ${startDate} AND ${schema.transactions.amountCents} < 0`);
   
   // Group by date and sum absolute spending
+  // Normalize dates: some have timestamps (2026-02-05 05:23:16), extract just YYYY-MM-DD
   const dailyTotals: Record<string, number> = {};
   for (const tx of transactions) {
-    if (!dailyTotals[tx.date]) dailyTotals[tx.date] = 0;
-    dailyTotals[tx.date] += Math.abs(tx.amount);
+    const dateOnly = tx.date.split(' ')[0]; // Get just YYYY-MM-DD part
+    if (!dailyTotals[dateOnly]) dailyTotals[dateOnly] = 0;
+    dailyTotals[dateOnly] += Math.abs(tx.amount);
   }
   
   return dailyTotals;

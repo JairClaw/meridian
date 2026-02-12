@@ -161,8 +161,8 @@ export default async function DashboardPage() {
                       <p className="text-xs text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
                     </div>
                   </div>
-                  <p className={`font-semibold tabular-nums ${(account.currentBalanceCents ?? 0) >= 0 ? '' : 'text-rose-500'}`}>
-                    <PrivateAmount>{formatCurrencyFull(account.currentBalanceCents ?? 0, account.currency)}</PrivateAmount>
+                  <p className={`font-semibold tabular-nums ${(account.currentBalance ?? 0) >= 0 ? '' : 'text-rose-500'}`}>
+                    <PrivateAmount>{formatCurrencyFull(account.currentBalance ?? 0, account.currency)}</PrivateAmount>
                   </p>
                 </div>
               ))}

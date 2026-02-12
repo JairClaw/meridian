@@ -38,8 +38,11 @@ function generateYearGrid(dailySpending: Record<string, number>) {
   for (let week = 0; week < 53; week++) {
     const weekDays: Array<{ date: Date; spending: number }> = [];
     for (let day = 0; day < 7; day++) {
-      // Get date string in YYYY-MM-DD format
-      const dateStr = currentDate.toISOString().split('T')[0];
+      // Get date string in YYYY-MM-DD format (local time, not UTC)
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       // Look up actual spending for this date
       const spending = dailySpending[dateStr] || 0;
       
