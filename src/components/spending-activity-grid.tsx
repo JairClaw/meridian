@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { PrivateAmount } from '@/components/private-amount';
 
 interface SpendingActivityGridProps {
   yearlyTotal: number;
@@ -196,7 +197,7 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
           >
             {hoveredCell.spending === 0 
               ? `No spending on ${formatDate(hoveredCell.date)}`
-              : `${formatCurrency(hoveredCell.spending)} spent on ${formatDate(hoveredCell.date)}`
+              : <><PrivateAmount>{formatCurrency(hoveredCell.spending)}</PrivateAmount> spent on {formatDate(hoveredCell.date)}</>
             }
           </div>
         )}
@@ -204,7 +205,7 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
         <div className="flex items-baseline gap-3 mt-4 pt-4 border-t border-border">
           <p className="text-sm text-muted-foreground">Total this year:</p>
           <p className="text-xl font-semibold tabular-nums">
-            {formatCurrency(yearlyTotal)}
+            <PrivateAmount>{formatCurrency(yearlyTotal)}</PrivateAmount>
           </p>
         </div>
       </CardContent>

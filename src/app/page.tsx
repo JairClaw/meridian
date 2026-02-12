@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { getDashboardStats, getTransactions } from '@/lib/actions';
 import Link from 'next/link';
 import { SpendingActivityGrid } from '@/components/spending-activity-grid';
+import { PrivateAmount } from '@/components/private-amount';
 
 function formatCurrency(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -69,7 +70,7 @@ export default async function DashboardPage() {
               <div>
                 <p className="label-sm mb-3">NET WORTH</p>
                 <p className="text-3xl font-semibold tabular-nums">
-                  {formatCurrency(netWorth)}
+                  <PrivateAmount>{formatCurrency(netWorth)}</PrivateAmount>
                 </p>
               </div>
               <MiniSparkline positive={netWorth >= 0} />
@@ -92,7 +93,7 @@ export default async function DashboardPage() {
               <div>
                 <p className="label-sm mb-3">MONTHLY INCOME</p>
                 <p className="text-3xl font-semibold tabular-nums text-[#10B981]">
-                  {formatCurrency(monthlyIncome)}
+                  <PrivateAmount>{formatCurrency(monthlyIncome)}</PrivateAmount>
                 </p>
               </div>
               <MiniSparkline positive />
@@ -115,7 +116,7 @@ export default async function DashboardPage() {
               <div>
                 <p className="label-sm mb-3">MONTHLY EXPENSES</p>
                 <p className="text-3xl font-semibold tabular-nums">
-                  {formatCurrency(Math.abs(monthlyExpenses))}
+                  <PrivateAmount>{formatCurrency(Math.abs(monthlyExpenses))}</PrivateAmount>
                 </p>
               </div>
               <MiniSparkline positive={false} />
@@ -160,7 +161,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <p className={`font-semibold tabular-nums ${account.currentBalanceCents >= 0 ? '' : 'text-rose-500'}`}>
-                    {formatCurrencyFull(account.currentBalanceCents, account.currency)}
+                    <PrivateAmount>{formatCurrencyFull(account.currentBalanceCents, account.currency)}</PrivateAmount>
                   </p>
                 </div>
               ))}
@@ -190,7 +191,9 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <p className={`text-sm font-semibold tabular-nums ${transaction.amountCents > 0 ? 'text-[#10B981]' : ''}`}>
-                    {transaction.amountCents > 0 ? '+' : ''}{formatCurrencyFull(transaction.amountCents, transaction.currency)}
+                    <PrivateAmount>
+                      {transaction.amountCents > 0 ? '+' : ''}{formatCurrencyFull(transaction.amountCents, transaction.currency)}
+                    </PrivateAmount>
                   </p>
                 </div>
               ))}
