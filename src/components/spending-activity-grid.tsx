@@ -7,6 +7,7 @@ import { PrivateAmount } from '@/components/private-amount';
 
 interface SpendingActivityGridProps {
   yearlyTotal: number;
+  dailySpending: Record<string, number>; // date string -> cents spent
 }
 
 function formatCurrency(cents: number) {
@@ -18,14 +19,8 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
-// Seeded random for consistent results
-function seededRandom(seed: number) {
-  const x = Math.sin(seed * 9999) * 10000;
-  return x - Math.floor(x);
-}
-
-// Generate 53 weeks of dates ending today
-function generateYearGrid() {
+// Generate 53 weeks of dates ending today, using real spending data
+function generateYearGrid(dailySpending: Record<string, number>) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -43,10 +38,10 @@ function generateYearGrid() {
   for (let week = 0; week < 53; week++) {
     const weekDays: Array<{ date: Date; spending: number }> = [];
     for (let day = 0; day < 7; day++) {
-      // Use date as seed for consistent random
-      const seed = currentDate.getFullYear() * 10000 + (currentDate.getMonth() + 1) * 100 + currentDate.getDate();
-      const rand = seededRandom(seed);
-      const spending = rand < 0.25 ? 0 : Math.floor(rand * 50000);
+      // Get date string in YYYY-MM-DD format
+      const dateStr = currentDate.toISOString().split('T')[0];
+      // Look up actual spending for this date
+      const spending = dailySpending[dateStr] || 0;
       
       weekDays.push({
         date: new Date(currentDate),
@@ -92,13 +87,13 @@ function getMonthLabels(grid: Array<{ date: Date; spending: number }[]>) {
 // Level 0 = no spending (darkest), 4 = most spending (lightest)
 const COLORS = ['#1A1A1A', '#4A4A4A', '#7A7A7A', '#B0B0B0', '#EBEDF0'];
 
-export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps) {
+export function SpendingActivityGrid({ yearlyTotal, dailySpending }: SpendingActivityGridProps) {
   const router = useRouter();
   const [hoveredCell, setHoveredCell] = useState<{ date: Date; spending: number } | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   
   // Memoize grid to prevent flickering on re-render
-  const grid = useMemo(() => generateYearGrid(), []);
+  const grid = useMemo(() => generateYearGrid(dailySpending), [dailySpending]);
   const monthLabels = useMemo(() => getMonthLabels(grid), [grid]);
 
   const handleMouseEnter = (cell: { date: Date; spending: number }, e: React.MouseEvent) => {

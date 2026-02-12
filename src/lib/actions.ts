@@ -972,3 +972,26 @@ export async function getSuggestedSubscriptions() {
     .sort((a, b) => (b.confidence * b.occurrences) - (a.confidence * a.occurrences))
     .slice(0, 15);
 }
+
+// Get daily spending totals for activity grid
+export async function getDailySpending() {
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const startDate = oneYearAgo.toISOString().split('T')[0];
+  
+  const transactions = await db.select({
+    date: schema.transactions.date,
+    amount: schema.transactions.amountCents,
+  })
+    .from(schema.transactions)
+    .where(sql`${schema.transactions.date} >= ${startDate} AND ${schema.transactions.amountCents} < 0`);
+  
+  // Group by date and sum absolute spending
+  const dailyTotals: Record<string, number> = {};
+  for (const tx of transactions) {
+    if (!dailyTotals[tx.date]) dailyTotals[tx.date] = 0;
+    dailyTotals[tx.date] += Math.abs(tx.amount);
+  }
+  
+  return dailyTotals;
+}

@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { getDashboardStats, getTransactions } from '@/lib/actions';
+import { getDashboardStats, getTransactions, getDailySpending } from '@/lib/actions';
 import Link from 'next/link';
 import { SpendingActivityGrid } from '@/components/spending-activity-grid';
 import { PrivateAmount } from '@/components/private-amount';
@@ -38,9 +38,10 @@ function MiniSparkline({ positive = true }: { positive?: boolean }) {
 }
 
 export default async function DashboardPage() {
-  const [stats, recentTransactions] = await Promise.all([
+  const [stats, recentTransactions, dailySpending] = await Promise.all([
     getDashboardStats(),
     getTransactions({ limit: 8 }),
+    getDailySpending(),
   ]);
 
   const { netWorth, monthlyIncome, monthlyExpenses, accounts } = stats;
@@ -135,7 +136,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Spending Activity - GitHub Style */}
-      <SpendingActivityGrid yearlyTotal={Math.abs(monthlyExpenses) * 12} />
+      <SpendingActivityGrid yearlyTotal={Math.abs(monthlyExpenses) * 12} dailySpending={dailySpending} />
 
       {/* Bottom Section: Accounts & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -160,8 +161,8 @@ export default async function DashboardPage() {
                       <p className="text-xs text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
                     </div>
                   </div>
-                  <p className={`font-semibold tabular-nums ${account.currentBalanceCents >= 0 ? '' : 'text-rose-500'}`}>
-                    <PrivateAmount>{formatCurrencyFull(account.currentBalanceCents, account.currency)}</PrivateAmount>
+                  <p className={`font-semibold tabular-nums ${(account.currentBalanceCents ?? 0) >= 0 ? '' : 'text-rose-500'}`}>
+                    <PrivateAmount>{formatCurrencyFull(account.currentBalanceCents ?? 0, account.currency)}</PrivateAmount>
                   </p>
                 </div>
               ))}
@@ -186,7 +187,10 @@ export default async function DashboardPage() {
                       {category?.icon || '💳'}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{transaction.merchant || transaction.description}</p>
+                      <p className="text-sm font-medium">
+                        {(transaction.merchant || transaction.description).slice(0, 24)}
+                        {(transaction.merchant || transaction.description).length > 24 ? '…' : ''}
+                      </p>
                       <p className="text-xs text-muted-foreground">{transaction.date}</p>
                     </div>
                   </div>
