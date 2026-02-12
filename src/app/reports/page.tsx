@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getMonthlyTrends, getDashboardStats, getWeeklyIncomeExpenses } from '@/lib/actions';
 import { MonthlyBreakdown } from './month-selector';
 import { IncomeExpensesChart } from '@/components/income-expenses-chart';
+import { PrivateAmount } from '@/components/private-amount';
 
 function formatCurrency(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -42,7 +43,7 @@ export default async function ReportsPage() {
           <CardContent className="pt-6">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Net Worth</p>
             <p className={`text-xl font-semibold tabular-nums font-display ${netWorth >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {formatCurrency(netWorth)}
+              <PrivateAmount>{formatCurrency(netWorth)}</PrivateAmount>
             </p>
           </CardContent>
         </Card>
@@ -50,7 +51,7 @@ export default async function ReportsPage() {
           <CardContent className="pt-6">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">This Month Income</p>
             <p className="text-xl font-semibold tabular-nums font-display text-emerald-500">
-              {formatCurrency(monthlyIncome)}
+              <PrivateAmount>{formatCurrency(monthlyIncome)}</PrivateAmount>
             </p>
           </CardContent>
         </Card>
@@ -58,7 +59,7 @@ export default async function ReportsPage() {
           <CardContent className="pt-6">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">This Month Expenses</p>
             <p className="text-xl font-semibold tabular-nums font-display">
-              {formatCurrency(monthlyExpenses)}
+              <PrivateAmount>{formatCurrency(monthlyExpenses)}</PrivateAmount>
             </p>
           </CardContent>
         </Card>
@@ -109,13 +110,13 @@ export default async function ReportsPage() {
                         </Link>
                       </td>
                       <td className="py-3 px-4 text-right tabular-nums text-emerald-500">
-                        {formatCurrency(month.income)}
+                        <PrivateAmount>{formatCurrency(month.income)}</PrivateAmount>
                       </td>
                       <td className="py-3 px-4 text-right tabular-nums">
-                        {formatCurrency(month.expenses)}
+                        <PrivateAmount>{formatCurrency(month.expenses)}</PrivateAmount>
                       </td>
                       <td className={`py-3 px-4 text-right tabular-nums font-medium ${net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                        <PrivateAmount>{net >= 0 ? '+' : ''}{formatCurrency(net)}</PrivateAmount>
                       </td>
                       <td className={`py-3 px-4 text-right tabular-nums ${rate >= 20 ? 'text-emerald-500' : rate >= 0 ? '' : 'text-rose-500'}`}>
                         {rate.toFixed(1)}%
