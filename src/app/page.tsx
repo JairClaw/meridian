@@ -135,22 +135,21 @@ export default async function DashboardPage() {
       {/* Spending Activity - GitHub Style */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <p className="label-sm">SPENDING ACTIVITY</p>
-              <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">?</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Less</span>
-              <div className="flex gap-1">
+              <div className="flex gap-[3px]">
                 {[0, 1, 2, 3, 4].map((level) => (
                   <div 
                     key={level}
-                    className="w-3 h-3 rounded-sm"
+                    className="w-[10px] h-[10px] rounded-[2px]"
                     style={{ 
                       backgroundColor: level === 0 
                         ? '#EBEDF0' 
-                        : `rgba(26, 26, 26, ${0.2 + level * 0.2})` 
+                        : `rgba(26, 26, 26, ${0.15 + level * 0.22})` 
                     }}
                   />
                 ))}
@@ -159,46 +158,57 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-baseline gap-4 mb-6">
-            <p className="text-sm text-muted-foreground">Total this year:</p>
-            <p className="text-2xl font-semibold tabular-nums">
-              {formatCurrency(Math.abs(monthlyExpenses) * 12)}
-            </p>
+          {/* Month labels */}
+          <div className="flex mb-2 ml-8 text-xs text-muted-foreground">
+            {['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'].map((m) => (
+              <span key={m} className="flex-1">{m}</span>
+            ))}
           </div>
 
           {/* GitHub-style Activity Grid */}
-          <div className="overflow-x-auto">
-            <div className="inline-flex gap-1">
-              {/* Weeks (52 columns) */}
-              {Array.from({ length: 52 }).map((_, weekIdx) => (
-                <div key={weekIdx} className="flex flex-col gap-1">
-                  {/* Days (7 rows) */}
-                  {Array.from({ length: 7 }).map((_, dayIdx) => {
-                    // Generate spending intensity (0-4)
-                    const seed = (weekIdx * 7 + dayIdx) * 13 % 100;
-                    const level = seed < 20 ? 0 : seed < 40 ? 1 : seed < 60 ? 2 : seed < 80 ? 3 : 4;
-                    return (
-                      <div
-                        key={dayIdx}
-                        className="w-3 h-3 rounded-sm transition-colors hover:ring-1 hover:ring-[#1A1A1A]/30"
-                        style={{ 
-                          backgroundColor: level === 0 
-                            ? '#EBEDF0' 
-                            : `rgba(26, 26, 26, ${0.15 + level * 0.2})` 
-                        }}
-                        title={`Week ${weekIdx + 1}, Day ${dayIdx + 1}`}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
+          <div className="flex gap-2">
+            {/* Day labels */}
+            <div className="flex flex-col justify-around text-xs text-muted-foreground pr-1" style={{ height: 82 }}>
+              <span>Mon</span>
+              <span>Wed</span>
+              <span>Fri</span>
             </div>
-            {/* Month labels */}
-            <div className="flex mt-2 text-xs text-muted-foreground">
-              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
-                <span key={m} style={{ width: `${100/12}%` }}>{m}</span>
-              ))}
+            
+            {/* Grid */}
+            <div className="flex-1 overflow-x-auto">
+              <div className="flex gap-[3px]" style={{ width: 'max-content' }}>
+                {/* 53 weeks */}
+                {Array.from({ length: 53 }).map((_, weekIdx) => (
+                  <div key={weekIdx} className="flex flex-col gap-[3px]">
+                    {/* 7 days */}
+                    {Array.from({ length: 7 }).map((_, dayIdx) => {
+                      // Generate spending intensity (0-4) with some randomness
+                      const seed = Math.sin(weekIdx * 7 + dayIdx + 1) * 10000;
+                      const rand = seed - Math.floor(seed);
+                      const level = rand < 0.3 ? 0 : rand < 0.5 ? 1 : rand < 0.7 ? 2 : rand < 0.85 ? 3 : 4;
+                      return (
+                        <div
+                          key={dayIdx}
+                          className="w-[10px] h-[10px] rounded-[2px]"
+                          style={{ 
+                            backgroundColor: level === 0 
+                              ? '#EBEDF0' 
+                              : `rgba(26, 26, 26, ${0.15 + level * 0.22})` 
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
+
+          <div className="flex items-baseline gap-3 mt-4 pt-4 border-t border-border">
+            <p className="text-sm text-muted-foreground">Total this year:</p>
+            <p className="text-xl font-semibold tabular-nums">
+              {formatCurrency(Math.abs(monthlyExpenses) * 12)}
+            </p>
           </div>
         </CardContent>
       </Card>
