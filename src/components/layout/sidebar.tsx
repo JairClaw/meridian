@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ThemeToggle } from '@/components/theme-toggle';
 
 const navigation = [
   {
-    name: 'Overview',
+    name: 'Dashboard',
     href: '/',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -34,6 +33,15 @@ const navigation = [
     ),
   },
   {
+    name: 'Reports & Analytics',
+    href: '/reports',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    ),
+  },
+  {
     name: 'Subscriptions',
     href: '/subscriptions',
     icon: (
@@ -48,15 +56,6 @@ const navigation = [
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-      </svg>
-    ),
-  },
-  {
-    name: 'Reports',
-    href: '/reports',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
       </svg>
     ),
   },
@@ -88,24 +87,29 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card sticky top-0 h-screen overflow-hidden">
+    <aside className="hidden lg:flex flex-col w-64 bg-[var(--sidebar)] sticky top-0 h-screen overflow-hidden">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-border">
-        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-gold-500 to-gold-400">
-          <svg className="w-6 h-6 text-navy-950" fill="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center gap-3 px-6 py-5">
+        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#1A1A1A] text-white">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
         </div>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight font-display">
+          <p className="text-xs text-muted-foreground">Personal</p>
+          <h1 className="text-sm font-semibold text-foreground">
             Meridian
           </h1>
-          <p className="text-xs text-muted-foreground">Personal Finance</p>
         </div>
       </div>
 
+      {/* Main Menu Label */}
+      <div className="px-6 pt-4 pb-2">
+        <p className="text-xs font-medium text-muted-foreground">Main Menu</p>
+      </div>
+
       {/* Main Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -113,12 +117,15 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-gold-500/10 text-gold-500 border-l-2 border-gold-500 -ml-0.5 pl-[calc(0.75rem+2px)]'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? 'bg-white text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/50'
               )}
             >
+              {isActive && (
+                <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+              )}
               {item.icon}
               {item.name}
             </Link>
@@ -127,41 +134,29 @@ export function Sidebar() {
       </nav>
 
       {/* Secondary Navigation */}
-      <div className="px-4 py-4 border-t border-border">
+      <div className="px-3 py-4 border-t border-border/50">
+        <p className="px-3 pb-2 text-xs font-medium text-muted-foreground">Settings</p>
         {secondaryNavigation.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-gold-500/10 text-gold-500'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? 'bg-white text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/50'
               )}
             >
+              {isActive && (
+                <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+              )}
               {item.icon}
               {item.name}
             </Link>
           );
         })}
-      </div>
-
-      {/* User Section */}
-      <div className="px-4 py-4 border-t border-border">
-        <div className="flex items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-navy-600 to-navy-800 flex items-center justify-center text-sm font-medium text-white">
-              D
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Diya</p>
-              <p className="text-xs text-muted-foreground truncate">Personal</p>
-            </div>
-          </div>
-          <ThemeToggle />
-        </div>
       </div>
     </aside>
   );

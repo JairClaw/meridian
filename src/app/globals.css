@@ -1,58 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --radius: 0.5rem;
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --radius: 0.75rem;
   
-  /* Light theme - JP Morgan inspired */
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.15 0.03 250);
-  --card: oklch(0.99 0 0);
-  --card-foreground: oklch(0.15 0.03 250);
-  --popover: oklch(0.99 0 0);
-  --popover-foreground: oklch(0.15 0.03 250);
-  --primary: oklch(0.18 0.04 250);
-  --primary-foreground: oklch(0.95 0.02 85);
-  --secondary: oklch(0.96 0.01 250);
-  --secondary-foreground: oklch(0.18 0.03 250);
-  --muted: oklch(0.96 0.01 250);
-  --muted-foreground: oklch(0.55 0.02 250);
-  --accent: oklch(0.72 0.15 85);
-  --accent-foreground: oklch(0.18 0.04 250);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.90 0.01 250);
-  --input: oklch(0.90 0.01 250);
-  --ring: oklch(0.72 0.15 85);
-  --chart-1: oklch(0.30 0.05 250);
-  --chart-2: oklch(0.72 0.15 85);
-  --chart-3: oklch(0.55 0.15 160);
-  --chart-4: oklch(0.55 0.05 250);
-  --chart-5: oklch(0.70 0.10 85);
+  /* Light minimal theme - inspired by modern SaaS */
+  --background: #F7F7F5;
+  --foreground: #1A1A1A;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A1A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A1A;
+  --primary: #1A1A1A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F0F0ED;
+  --secondary-foreground: #1A1A1A;
+  --muted: #F0F0ED;
+  --muted-foreground: #6B6B6B;
+  --accent: #10B981;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E5E2;
+  --input: #E5E5E2;
+  --ring: #10B981;
+  --chart-1: #1A1A1A;
+  --chart-2: #10B981;
+  --chart-3: #6B6B6B;
+  --chart-4: #D1D1CD;
+  --chart-5: #059669;
+  
+  /* Sidebar */
+  --sidebar: #F0F0ED;
+  --sidebar-foreground: #6B6B6B;
+  --sidebar-active: #FFFFFF;
+  --sidebar-active-foreground: #1A1A1A;
 }
 
 .dark {
-  /* Dark theme - Wealth management aesthetic */
-  --background: oklch(0.14 0.02 250);
-  --foreground: oklch(0.93 0.01 250);
-  --card: oklch(0.17 0.02 250);
-  --card-foreground: oklch(0.93 0.01 250);
-  --popover: oklch(0.17 0.02 250);
-  --popover-foreground: oklch(0.93 0.01 250);
-  --primary: oklch(0.72 0.15 85);
-  --primary-foreground: oklch(0.14 0.02 250);
-  --secondary: oklch(0.22 0.02 250);
-  --secondary-foreground: oklch(0.90 0.01 250);
-  --muted: oklch(0.22 0.02 250);
-  --muted-foreground: oklch(0.60 0.02 250);
-  --accent: oklch(0.72 0.15 85);
-  --accent-foreground: oklch(0.14 0.02 250);
-  --destructive: oklch(0.50 0.18 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.25 0.02 250);
-  --input: oklch(0.25 0.02 250);
-  --ring: oklch(0.72 0.15 85);
+  /* Dark variant - optional */
+  --background: #0F0F0F;
+  --foreground: #FAFAFA;
+  --card: #1A1A1A;
+  --card-foreground: #FAFAFA;
+  --popover: #1A1A1A;
+  --popover-foreground: #FAFAFA;
+  --primary: #FAFAFA;
+  --primary-foreground: #0F0F0F;
+  --secondary: #262626;
+  --secondary-foreground: #FAFAFA;
+  --muted: #262626;
+  --muted-foreground: #A3A3A3;
+  --accent: #10B981;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #262626;
+  --input: #262626;
+  --ring: #10B981;
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #A3A3A3;
+  --sidebar-active: #262626;
+  --sidebar-active-foreground: #FAFAFA;
 }
 
 @theme inline {
@@ -85,24 +95,24 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   
-  /* Gold accent color */
-  --color-gold-500: oklch(0.72 0.15 85);
-  --color-gold-400: oklch(0.76 0.14 85);
-  --color-gold-300: oklch(0.80 0.12 85);
+  /* Accent colors */
+  --color-mint-500: #10B981;
+  --color-mint-400: #34D399;
+  --color-mint-600: #059669;
   
-  /* Navy color */
-  --color-navy-950: oklch(0.14 0.03 250);
-  --color-navy-900: oklch(0.17 0.03 250);
-  --color-navy-800: oklch(0.22 0.03 250);
-  --color-navy-700: oklch(0.28 0.04 250);
-  --color-navy-600: oklch(0.35 0.04 250);
+  /* Neutral grays */
+  --color-stone-50: #FAFAF9;
+  --color-stone-100: #F5F5F4;
+  --color-stone-200: #E7E5E4;
+  --color-stone-800: #292524;
+  --color-stone-900: #1C1917;
   
   /* Success/Danger */
-  --color-emerald-500: oklch(0.55 0.15 160);
-  --color-rose-500: oklch(0.55 0.20 15);
+  --color-emerald-500: #10B981;
+  --color-rose-500: #EF4444;
   
   /* Font families */
-  --font-family-display: var(--font-display), Georgia, serif;
+  --font-family-display: var(--font-display), system-ui, sans-serif;
   --font-family-sans: var(--font-sans), system-ui, sans-serif;
 }
 
@@ -117,24 +127,56 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Elegant number formatting for financial data */
+/* Tabular numbers for financial data */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* Refined card hover states */
+/* Refined card styles */
 .card-hover {
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 .card-hover:hover {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Uppercase small labels like in the design */
+.label-sm {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Pill buttons */
+.pill {
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.pill-active {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.pill-inactive {
+  background: transparent;
+  color: var(--muted-foreground);
+}
+
+.pill-inactive:hover {
+  color: var(--foreground);
 }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -142,10 +184,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.75 0.01 250);
-  border-radius: 4px;
+  background: #D1D1CD;
+  border-radius: 3px;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: oklch(0.35 0.02 250);
+::-webkit-scrollbar-thumb:hover {
+  background: #A3A3A3;
+}
+
+/* Block chart cells (like in the inspiration) */
+.block-cell {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
 }

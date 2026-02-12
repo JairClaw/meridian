@@ -1,32 +1,17 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { getDashboardStats, getTransactions } from '@/lib/actions';
 import Link from 'next/link';
 
-const accountTypeConfig: Record<string, { color: string; icon: React.ReactNode }> = {
-  checking: { 
-    color: 'bg-blue-500/10 text-blue-500',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>
-  },
-  savings: { 
-    color: 'bg-emerald-500/10 text-emerald-500',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg>
-  },
-  investment: { 
-    color: 'bg-purple-500/10 text-purple-500',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>
-  },
-  credit_card: {
-    color: 'bg-orange-500/10 text-orange-500',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>
-  },
-  cash: {
-    color: 'bg-green-500/10 text-green-500',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" /></svg>
-  },
-};
-
 function formatCurrency(cents: number, currency = 'EUR') {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+function formatCurrencyFull(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
@@ -34,237 +19,247 @@ function formatCurrency(cents: number, currency = 'EUR') {
   }).format(cents / 100);
 }
 
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
+// Mini sparkline bars component
+function MiniSparkline({ positive = true }: { positive?: boolean }) {
+  const heights = [40, 60, 35, 80, 55, 70, 45, 90, 65, 75];
+  return (
+    <div className="flex items-end gap-0.5 h-8">
+      {heights.map((h, i) => (
+        <div 
+          key={i} 
+          className={`w-1 rounded-sm ${positive ? 'bg-[#1A1A1A]' : 'bg-[#1A1A1A]/30'}`}
+          style={{ height: `${h}%` }}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
   const [stats, recentTransactions] = await Promise.all([
     getDashboardStats(),
-    getTransactions({ limit: 5 }),
+    getTransactions({ limit: 8 }),
   ]);
 
-  const { netWorth, monthlyIncome, monthlyExpenses, savingsRate, accounts } = stats;
+  const { netWorth, monthlyIncome, monthlyExpenses, accounts } = stats;
+  
+  // Calculate YoY change (mock for now)
+  const yoyChange = 0.12;
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{getGreeting()}</p>
-          <h1 className="text-3xl font-display">Financial Overview</h1>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </p>
-        </div>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-muted-foreground">Dashboard</span>
+        <span className="text-muted-foreground">›</span>
+        <span className="font-medium">Overview</span>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="card-hover">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase tracking-wider">Net Worth</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-semibold tabular-nums font-display ${netWorth >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {formatCurrency(netWorth)}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Total assets minus liabilities</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="card-hover">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase tracking-wider">Monthly Income</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold tabular-nums font-display text-emerald-500">
-                {formatCurrency(monthlyIncome)}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">This month</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="card-hover">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase tracking-wider">Monthly Expenses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold tabular-nums font-display">
-                {formatCurrency(monthlyExpenses)}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">This month</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="card-hover">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase tracking-wider">Savings Rate</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-semibold tabular-nums font-display ${savingsRate >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {savingsRate.toFixed(1)}%
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Income saved</p>
-          </CardContent>
-        </Card>
+      {/* Welcome */}
+      <div>
+        <h1 className="text-2xl font-semibold">Welcome back, Diya</h1>
       </div>
 
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Accounts */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="font-display">Accounts</CardTitle>
-                <CardDescription>Your connected accounts</CardDescription>
+                <p className="label-sm mb-3">NET WORTH</p>
+                <p className="text-3xl font-semibold tabular-nums">
+                  {formatCurrency(netWorth)}
+                </p>
               </div>
-              <Link href="/accounts" className="text-sm text-gold-500 hover:text-gold-400 transition-colors">
+              <MiniSparkline positive={netWorth >= 0} />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#10B981]/10 flex items-center justify-center">
+                <svg className="w-3 h-3 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </span>
+              <span className="text-sm text-[#10B981] font-medium">+{(yoyChange * 100).toFixed(0)}%</span>
+              <span className="text-sm text-muted-foreground">vs last year</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="label-sm mb-3">MONTHLY INCOME</p>
+                <p className="text-3xl font-semibold tabular-nums text-[#10B981]">
+                  {formatCurrency(monthlyIncome)}
+                </p>
+              </div>
+              <MiniSparkline positive />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#10B981]/10 flex items-center justify-center">
+                <svg className="w-3 h-3 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </span>
+              <span className="text-sm text-[#10B981] font-medium">+8%</span>
+              <span className="text-sm text-muted-foreground">vs last month</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="label-sm mb-3">MONTHLY EXPENSES</p>
+                <p className="text-3xl font-semibold tabular-nums">
+                  {formatCurrency(Math.abs(monthlyExpenses))}
+                </p>
+              </div>
+              <MiniSparkline positive={false} />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-rose-500/10 flex items-center justify-center">
+                <svg className="w-3 h-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </span>
+              <span className="text-sm text-rose-500 font-medium">-3%</span>
+              <span className="text-sm text-muted-foreground">vs last month</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Spending Trend - Block Chart Style */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <p className="label-sm">SPENDING TREND</p>
+              <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-xs">?</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {['Weekly', 'Monthly', 'Yearly'].map((period, i) => (
+                <button
+                  key={period}
+                  className={`pill ${i === 1 ? 'pill-active' : 'pill-inactive'}`}
+                >
+                  {period}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-baseline gap-4 mb-6">
+            <p className="text-sm text-muted-foreground">Total Spending:</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              {formatCurrency(Math.abs(monthlyExpenses))}
+            </p>
+            <div className="flex items-center gap-4 ml-8">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#1A1A1A]/30" />
+                <span className="text-sm text-muted-foreground">Essentials</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#1A1A1A]" />
+                <span className="text-sm text-muted-foreground">Discretionary</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Block Chart */}
+          <div className="relative">
+            <div className="flex items-end gap-1 h-48">
+              {Array.from({ length: 52 }).map((_, i) => {
+                const height = Math.random() * 80 + 20;
+                const isDiscretionary = Math.random() > 0.5;
+                return (
+                  <div key={i} className="flex-1 flex flex-col justify-end gap-0.5">
+                    <div 
+                      className={`w-full rounded-sm ${isDiscretionary ? 'bg-[#1A1A1A]' : 'bg-[#1A1A1A]/30'}`}
+                      style={{ height: `${height * 0.6}%` }}
+                    />
+                    <div 
+                      className={`w-full rounded-sm ${!isDiscretionary ? 'bg-[#1A1A1A]' : 'bg-[#1A1A1A]/30'}`}
+                      style={{ height: `${height * 0.4}%` }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            {/* X-axis labels */}
+            <div className="flex justify-between mt-4 text-xs text-muted-foreground">
+              {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].map(m => (
+                <span key={m}>{m}</span>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bottom Section: Accounts & Recent Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Accounts */}
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="label-sm">ACCOUNTS</p>
+              <Link href="/accounts" className="text-sm text-[#10B981] hover:underline">
                 View all →
               </Link>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {accounts.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground text-sm mb-3">No accounts yet</p>
-                <Link href="/accounts" className="text-gold-500 text-sm hover:text-gold-400">
-                  Add your first account →
-                </Link>
-              </div>
-            ) : (
-              accounts.slice(0, 4).map((account) => {
-                const config = accountTypeConfig[account.type] || { 
-                  color: 'bg-gray-500/10 text-gray-500', 
-                  icon: <span>📄</span> 
-                };
-                
-                return (
-                  <Link
-                    key={account.id}
-                    href={`/accounts/${account.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.color}`}>
-                        {config.icon}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{account.name}</p>
-                        <p className="text-xs text-muted-foreground">{account.institution || account.type}</p>
-                      </div>
+            <div className="space-y-3">
+              {accounts.slice(0, 4).map((account) => (
+                <div key={account.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#1A1A1A] text-white flex items-center justify-center text-sm font-medium">
+                      {account.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <div className="text-right">
-                      <p className={`text-sm font-semibold tabular-nums ${account.currentBalance < 0 ? 'text-rose-500' : ''}`}>
-                        {formatCurrency(account.currentBalance, account.currency)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{account.currency}</p>
+                    <div>
+                      <p className="font-medium text-sm">{account.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
                     </div>
-                  </Link>
-                );
-              })
-            )}
+                  </div>
+                  <p className={`font-semibold tabular-nums ${account.currentBalanceCents >= 0 ? '' : 'text-rose-500'}`}>
+                    {formatCurrencyFull(account.currentBalanceCents, account.currency)}
+                  </p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         {/* Recent Transactions */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="font-display">Recent Transactions</CardTitle>
-                <CardDescription>Your latest activity</CardDescription>
-              </div>
-              <Link href="/transactions" className="text-sm text-gold-500 hover:text-gold-400 transition-colors">
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="label-sm">RECENT TRANSACTIONS</p>
+              <Link href="/transactions" className="text-sm text-[#10B981] hover:underline">
                 View all →
               </Link>
             </div>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground text-sm mb-3">No transactions yet</p>
-                <Link href="/transactions" className="text-gold-500 text-sm hover:text-gold-400">
-                  Add your first transaction →
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentTransactions.map(({ transaction, account, category }) => (
-                  <div 
-                    key={transaction.id} 
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {(transaction.merchant || transaction.description).charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{transaction.merchant || transaction.description}</p>
-                        <p className="text-xs text-muted-foreground">{transaction.description}</p>
-                      </div>
+            <div className="space-y-2">
+              {recentTransactions.slice(0, 5).map(({ transaction, category }) => (
+                <div key={transaction.id} className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm">
+                      {category?.icon || '💳'}
                     </div>
-                    <div className="flex items-center gap-4">
-                      {category && (
-                        <Badge variant="outline" className="text-xs">
-                          {category.name}
-                        </Badge>
-                      )}
-                      <div className="text-right min-w-[100px]">
-                        <p className={`text-sm font-semibold tabular-nums ${
-                          transaction.amountCents > 0 ? 'text-emerald-500' : ''
-                        }`}>
-                          {transaction.amountCents > 0 ? '+' : ''}{formatCurrency(transaction.amountCents, transaction.currency)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{transaction.date}</p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-medium">{transaction.merchant || transaction.description}</p>
+                      <p className="text-xs text-muted-foreground">{transaction.date}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                  <p className={`text-sm font-semibold tabular-nums ${transaction.amountCents > 0 ? 'text-[#10B981]' : ''}`}>
+                    {transaction.amountCents > 0 ? '+' : ''}{formatCurrencyFull(transaction.amountCents, transaction.currency)}
+                  </p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Add Transaction', icon: '＋', href: '/transactions' },
-          { label: 'Import CSV', icon: '↑', href: '/import' },
-          { label: 'New Account', icon: '⊕', href: '/accounts' },
-          { label: 'View Reports', icon: '◎', href: '/reports' },
-        ].map((action) => (
-          <Link
-            key={action.label}
-            href={action.href}
-            className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-gold-500/50 hover:bg-gold-500/5 transition-all duration-200"
-          >
-            <span className="text-xl text-gold-500">{action.icon}</span>
-            <span className="text-sm font-medium">{action.label}</span>
-          </Link>
-        ))}
       </div>
     </div>
   );
