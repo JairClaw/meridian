@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface SpendingActivityGridProps {
@@ -16,24 +16,35 @@ function formatCurrency(cents: number) {
   }).format(cents / 100);
 }
 
+// Seeded random for consistent results
+function seededRandom(seed: number) {
+  const x = Math.sin(seed * 9999) * 10000;
+  return x - Math.floor(x);
+}
+
 // Generate 53 weeks of dates ending today
 function generateYearGrid() {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   const grid: Array<{ date: Date; spending: number }[]> = [];
   
-  // Start from 52 weeks ago, aligned to Sunday
+  // Calculate start: go back ~52 weeks, then align to start of that week (Sunday)
   const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - 364 - startDate.getDay());
+  startDate.setDate(startDate.getDate() - 52 * 7);
+  // Align to Sunday (start of week)
+  const dayOfWeek = startDate.getDay();
+  startDate.setDate(startDate.getDate() - dayOfWeek);
   
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
   
   for (let week = 0; week < 53; week++) {
     const weekDays: Array<{ date: Date; spending: number }> = [];
     for (let day = 0; day < 7; day++) {
-      // Generate mock spending (0 = no spending, higher = more spending)
-      const seed = Math.sin(currentDate.getTime() / 86400000) * 10000;
-      const rand = seed - Math.floor(seed);
-      const spending = rand < 0.25 ? 0 : Math.floor(rand * 50000); // 0-500€ in cents
+      // Use date as seed for consistent random
+      const seed = currentDate.getFullYear() * 10000 + (currentDate.getMonth() + 1) * 100 + currentDate.getDate();
+      const rand = seededRandom(seed);
+      const spending = rand < 0.25 ? 0 : Math.floor(rand * 50000);
       
       weekDays.push({
         date: new Date(currentDate),
@@ -60,6 +71,7 @@ function getMonthLabels(grid: Array<{ date: Date; spending: number }[]>) {
   let lastMonth = -1;
   
   grid.forEach((week, weekIdx) => {
+    // Use first day of week for month label
     const firstDay = week[0];
     const month = firstDay.date.getMonth();
     if (month !== lastMonth) {
@@ -74,14 +86,16 @@ function getMonthLabels(grid: Array<{ date: Date; spending: number }[]>) {
   return months;
 }
 
-const COLORS = ['#EBEDF0', '#C6C6C6', '#8C8C8C', '#4A4A4A', '#1A1A1A'];
+// Inverted: Less spending = darker (good), More spending = lighter (warning)
+const COLORS = ['#EBEDF0', '#1A1A1A', '#4A4A4A', '#8C8C8C', '#C6C6C6'];
 
 export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps) {
   const [hoveredCell, setHoveredCell] = useState<{ date: Date; spending: number } | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   
-  const grid = generateYearGrid();
-  const monthLabels = getMonthLabels(grid);
+  // Memoize grid to prevent flickering on re-render
+  const grid = useMemo(() => generateYearGrid(), []);
+  const monthLabels = useMemo(() => getMonthLabels(grid), [grid]);
 
   const handleMouseEnter = (cell: { date: Date; spending: number }, e: React.MouseEvent) => {
     setHoveredCell(cell);
@@ -105,7 +119,7 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Less</span>
             <div className="flex gap-[3px]">
-              {COLORS.map((color, i) => (
+              {['#EBEDF0', '#1A1A1A', '#4A4A4A', '#8C8C8C', '#C6C6C6'].map((color, i) => (
                 <div 
                   key={i}
                   className="w-[10px] h-[10px] rounded-[2px]"
