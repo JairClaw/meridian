@@ -22,19 +22,24 @@ interface TransactionFiltersProps {
     category: Category | null;
   }>;
   categories: Category[];
+  initialDate?: string;
 }
 
-export function TransactionFilters({ transactions, categories }: TransactionFiltersProps) {
+export function TransactionFilters({ transactions, categories, initialDate }: TransactionFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || 'all');
+  const [dateFilter, setDateFilter] = useState<string>(initialDate || '');
   const [ruleForTxId, setRuleForTxId] = useState<number | null>(null);
   const [rulePattern, setRulePattern] = useState('');
   const [ruleCategoryId, setRuleCategoryId] = useState('');
   const [creating, setCreating] = useState(false);
 
   // Filter transactions
-  const filteredTransactions = transactions.filter(({ category }) => {
+  const filteredTransactions = transactions.filter(({ transaction, category }) => {
+    // Date filter
+    if (dateFilter && transaction.date !== dateFilter) return false;
+    // Category filter
     if (categoryFilter === 'all') return true;
     if (categoryFilter === 'uncategorized') return !category;
     return category?.id.toString() === categoryFilter;
@@ -97,6 +102,25 @@ export function TransactionFilters({ transactions, categories }: TransactionFilt
       {/* Filter Bar */}
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted-foreground">Filter:</span>
+        
+        {/* Date filter pill */}
+        {dateFilter && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#10B981]/10 text-[#10B981] text-sm font-medium">
+            <span>📅 {formatDate(dateFilter)}</span>
+            <button 
+              onClick={() => {
+                setDateFilter('');
+                router.push('/transactions');
+              }}
+              className="hover:bg-[#10B981]/20 rounded-full p-0.5"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+        
         <Select value={categoryFilter} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All categories" />

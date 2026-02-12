@@ -22,7 +22,12 @@ function formatDate(dateStr: string) {
   });
 }
 
-export default async function TransactionsPage() {
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string; category?: string }>;
+}) {
+  const params = await searchParams;
   const [transactions, accounts, uncategorizedCount, categories] = await Promise.all([
     getTransactions({ limit: 200 }),
     getAccounts(),
@@ -120,7 +125,7 @@ export default async function TransactionsPage() {
               </div>
             </div>
           ) : (
-            <TransactionFilters transactions={transactions} categories={categories} />
+            <TransactionFilters transactions={transactions} categories={categories} initialDate={params.date} />
           )}
         </CardContent>
       </Card>

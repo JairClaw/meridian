@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { PrivateAmount } from '@/components/private-amount';
 
@@ -92,6 +93,7 @@ function getMonthLabels(grid: Array<{ date: Date; spending: number }[]>) {
 const COLORS = ['#1A1A1A', '#4A4A4A', '#7A7A7A', '#B0B0B0', '#EBEDF0'];
 
 export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps) {
+  const router = useRouter();
   const [hoveredCell, setHoveredCell] = useState<{ date: Date; spending: number } | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   
@@ -111,6 +113,11 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  const handleCellClick = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    router.push(`/transactions?date=${dateStr}`);
   };
 
   return (
@@ -177,11 +184,12 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
                     return (
                       <div
                         key={dayIdx}
-                        className="aspect-square rounded-[2px] cursor-pointer transition-all hover:ring-1 hover:ring-[#1A1A1A]/30"
+                        className="aspect-square rounded-[2px] cursor-pointer transition-all hover:ring-2 hover:ring-[#10B981]/50"
                         style={{ 
                           backgroundColor: isInFuture ? 'transparent' : COLORS[level],
                           border: isInFuture ? '1px solid #E5E5E2' : 'none'
                         }}
+                        onClick={() => !isInFuture && handleCellClick(day.date)}
                         onMouseEnter={(e) => !isInFuture && handleMouseEnter(day, e)}
                         onMouseLeave={() => setHoveredCell(null)}
                       />
