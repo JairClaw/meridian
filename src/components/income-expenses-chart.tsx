@@ -52,23 +52,23 @@ export function IncomeExpensesChart({ monthlyData }: IncomeExpensesChartProps) {
 
   // Generate block rows (like GitHub activity but vertical bars)
   const generateBlocks = (value: number, isIncome: boolean) => {
-    const maxBlocks = 10;
+    const maxBlocks = 20; // More blocks = smaller per block
     const filledBlocks = Math.round((value / maxValue) * maxBlocks);
     
     return Array.from({ length: maxBlocks }).map((_, i) => {
       const isFilled = i < filledBlocks;
-      const intensity = isFilled ? (isIncome ? 0.3 + (i / maxBlocks) * 0.7 : 0.2 + (i / maxBlocks) * 0.5) : 0;
+      const intensity = isFilled ? (isIncome ? 0.4 + (i / maxBlocks) * 0.6 : 0.25 + (i / maxBlocks) * 0.45) : 0;
       
       return (
         <div
           key={i}
-          className="w-full aspect-square rounded-[2px]"
+          className="w-[10px] h-[10px] rounded-[2px]"
           style={{
             backgroundColor: isFilled
               ? isIncome 
                 ? `rgba(255, 255, 255, ${intensity})`
                 : `rgba(150, 150, 150, ${intensity})`
-              : 'rgba(255, 255, 255, 0.05)',
+              : 'rgba(255, 255, 255, 0.03)',
           }}
         />
       );
@@ -113,27 +113,27 @@ export function IncomeExpensesChart({ monthlyData }: IncomeExpensesChartProps) {
         </div>
 
         {/* Block Chart */}
-        <div className="flex gap-1">
+        <div className="flex justify-between">
           {monthlyData.map((data, idx) => (
             <div
               key={idx}
-              className="flex-1 cursor-pointer"
+              className="cursor-pointer"
               onMouseEnter={(e) => handleMouseEnter(data, e)}
               onMouseLeave={() => setHoveredMonth(null)}
             >
               {/* Two columns per month: income and expenses */}
-              <div className="flex gap-[2px]">
+              <div className="flex gap-[3px]">
                 {/* Income column */}
-                <div className="flex-1 flex flex-col gap-[2px]">
+                <div className="flex flex-col gap-[3px]">
                   {generateBlocks(data.income, true)}
                 </div>
                 {/* Expenses column */}
-                <div className="flex-1 flex flex-col gap-[2px]">
+                <div className="flex flex-col gap-[3px]">
                   {generateBlocks(data.expenses, false)}
                 </div>
               </div>
               {/* Month label */}
-              <p className="text-xs text-muted-foreground text-center mt-2">
+              <p className="text-xs text-muted-foreground text-center mt-3">
                 {data.month}
               </p>
             </div>
