@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMonthlyTrends, getDashboardStats } from '@/lib/actions';
+import { getMonthlyTrends, getDashboardStats, getMonthlyIncomeExpenses } from '@/lib/actions';
 import { SpendingChart } from '@/components/charts/spending-chart';
 import { MonthlyBreakdown } from './month-selector';
+import { IncomeExpensesChart } from '@/components/income-expenses-chart';
 
 function formatCurrency(cents: number, currency = 'EUR') {
   return new Intl.NumberFormat('en-US', {
@@ -12,9 +13,10 @@ function formatCurrency(cents: number, currency = 'EUR') {
 }
 
 export default async function ReportsPage() {
-  const [trends, stats] = await Promise.all([
+  const [trends, stats, monthlyData] = await Promise.all([
     getMonthlyTrends(6),
     getDashboardStats(),
+    getMonthlyIncomeExpenses(12),
   ]);
   
   const { netWorth, monthlyIncome, monthlyExpenses, savingsRate } = stats;
@@ -63,26 +65,8 @@ export default async function ReportsPage() {
         </Card>
       </div>
 
-      {/* Income vs Expenses Trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-display">Income vs Expenses</CardTitle>
-          <CardDescription>Last 6 months trend</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {trends.some(t => t.income > 0 || t.expenses > 0) ? (
-            <SpendingChart data={trends} />
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <div className="text-4xl mb-2">📊</div>
-                <p>No transaction data yet</p>
-                <p className="text-sm">Add transactions to see trends</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Income vs Expenses Trend - Block Chart */}
+      <IncomeExpensesChart monthlyData={monthlyData} />
 
       {/* Monthly Breakdown with Month Selector */}
       <MonthlyBreakdown />
