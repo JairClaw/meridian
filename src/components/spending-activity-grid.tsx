@@ -121,7 +121,7 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Less</span>
             <div className="flex gap-[3px]">
-              {['#EBEDF0', '#1A1A1A', '#4A4A4A', '#8C8C8C', '#C6C6C6'].map((color, i) => (
+              {['#1A1A1A', '#4A4A4A', '#7A7A7A', '#B0B0B0', '#EBEDF0'].map((color, i) => (
                 <div 
                   key={i}
                   className="w-[10px] h-[10px] rounded-[2px]"
