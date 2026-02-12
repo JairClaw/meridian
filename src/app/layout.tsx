@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
+import { PrivacyProvider } from "@/components/privacy-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,15 +32,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <MobileNav />
-          <div className="flex min-h-screen pt-14 lg:pt-0">
-            <Sidebar />
-            <main className="flex-1 overflow-auto">
-              <div className="container max-w-7xl mx-auto p-4 lg:p-8">
-                {children}
-              </div>
-            </main>
-          </div>
+          <PrivacyProvider>
+            <MobileNav />
+            <div className="flex min-h-screen pt-14 lg:pt-0">
+              <Sidebar />
+              <main className="flex-1 overflow-auto">
+                <div className="container max-w-7xl mx-auto p-4 lg:p-8">
+                  {children}
+                </div>
+              </main>
+            </div>
+          </PrivacyProvider>
         </ThemeProvider>
       </body>
     </html>

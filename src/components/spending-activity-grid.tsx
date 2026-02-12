@@ -86,8 +86,9 @@ function getMonthLabels(grid: Array<{ date: Date; spending: number }[]>) {
   return months;
 }
 
-// Inverted: Less spending = darker (good), More spending = lighter (warning)
-const COLORS = ['#EBEDF0', '#1A1A1A', '#4A4A4A', '#8C8C8C', '#C6C6C6'];
+// Less spending = darker (good/saved), More spending = lighter (warning)
+// Level 0 = no spending (empty), 1 = least (darkest), 4 = most (lightest)
+const COLORS = ['#EBEDF0', '#1A1A1A', '#4A4A4A', '#7A7A7A', '#B0B0B0'];
 
 export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps) {
   const [hoveredCell, setHoveredCell] = useState<{ date: Date; spending: number } | null>(null);
@@ -140,32 +141,38 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
             <span>Fri</span>
           </div>
           
-          {/* Activity Grid */}
-          <div className="flex-1 overflow-x-auto">
-            {/* Month labels - positioned by pixel */}
-            <div className="relative h-5 mb-1" style={{ width: 53 * 13 - 3 }}>
-              {monthLabels.map((month, i) => (
-                <span 
-                  key={i}
-                  className="absolute text-xs text-muted-foreground"
-                  style={{ left: month.weekIndex * 13 }}
-                >
-                  {month.name}
-                </span>
-              ))}
+          {/* Activity Grid - Full Width */}
+          <div className="flex-1">
+            {/* Month labels */}
+            <div className="flex mb-1">
+              {monthLabels.map((month, i) => {
+                const nextMonth = monthLabels[i + 1];
+                const weeksInMonth = nextMonth 
+                  ? nextMonth.weekIndex - month.weekIndex 
+                  : 53 - month.weekIndex;
+                return (
+                  <span 
+                    key={i}
+                    className="text-xs text-muted-foreground"
+                    style={{ flex: weeksInMonth }}
+                  >
+                    {month.name}
+                  </span>
+                );
+              })}
             </div>
             
-            {/* Grid cells */}
-            <div className="flex gap-[3px]" style={{ width: 'max-content' }}>
+            {/* Grid cells - flex to fill width */}
+            <div className="flex gap-[2px]">
               {grid.map((week, weekIdx) => (
-                <div key={weekIdx} className="flex flex-col gap-[3px]">
+                <div key={weekIdx} className="flex-1 flex flex-col gap-[2px]">
                   {week.map((day, dayIdx) => {
                     const level = getSpendingLevel(day.spending);
                     const isInFuture = day.date > new Date();
                     return (
                       <div
                         key={dayIdx}
-                        className="w-[10px] h-[10px] rounded-[2px] cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-[#1A1A1A]/30"
+                        className="aspect-square rounded-[2px] cursor-pointer transition-all hover:ring-1 hover:ring-[#1A1A1A]/30"
                         style={{ 
                           backgroundColor: isInFuture ? 'transparent' : COLORS[level],
                           border: isInFuture ? '1px solid #E5E5E2' : 'none'
