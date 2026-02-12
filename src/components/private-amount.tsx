@@ -11,7 +11,7 @@ export function PrivateAmount({ children, className }: PrivateAmountProps) {
   const { hideValues } = usePrivacy();
   
   if (hideValues) {
-    return <span className={className}>•••••</span>;
+    return <span className={className}>*****</span>;
   }
   
   return <span className={className}>{children}</span>;

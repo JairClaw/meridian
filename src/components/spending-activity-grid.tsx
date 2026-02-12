@@ -135,11 +135,15 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
 
         {/* Grid with month labels */}
         <div className="flex gap-2">
-          {/* Day labels */}
-          <div className="flex flex-col justify-around text-xs text-muted-foreground pr-1" style={{ height: 82, marginTop: 20 }}>
-            <span>Mon</span>
-            <span>Wed</span>
-            <span>Fri</span>
+          {/* Day labels - grid matching the activity rows */}
+          <div className="grid grid-rows-7 gap-[2px] text-xs text-muted-foreground pr-2" style={{ marginTop: 20 }}>
+            <div></div>
+            <div className="flex items-center">Mon</div>
+            <div></div>
+            <div className="flex items-center">Wed</div>
+            <div></div>
+            <div className="flex items-center">Fri</div>
+            <div></div>
           </div>
           
           {/* Activity Grid - Full Width */}
