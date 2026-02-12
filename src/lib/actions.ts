@@ -997,3 +997,32 @@ export async function getDailySpending() {
   
   return dailyTotals;
 }
+
+// Get monthly income/expenses for chart
+export async function getMonthlyIncomeExpenses(months = 12) {
+  const results: Array<{ month: string; income: number; expenses: number }> = [];
+  const now = new Date();
+  
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthStr = date.toLocaleDateString('en-US', { month: 'short' });
+    const startOfMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+    const endOfMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()}`;
+    
+    const transactions = await db.select()
+      .from(schema.transactions)
+      .where(sql`${schema.transactions.date} >= ${startOfMonth} AND ${schema.transactions.date} <= ${endOfMonth}`);
+    
+    const income = transactions
+      .filter(t => t.amountCents > 0)
+      .reduce((sum, t) => sum + t.amountCents, 0);
+    
+    const expenses = Math.abs(transactions
+      .filter(t => t.amountCents < 0)
+      .reduce((sum, t) => sum + t.amountCents, 0));
+    
+    results.push({ month: monthStr, income, expenses });
+  }
+  
+  return results;
+}

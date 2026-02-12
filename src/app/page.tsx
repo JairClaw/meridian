@@ -1,7 +1,8 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { getDashboardStats, getTransactions, getDailySpending } from '@/lib/actions';
+import { getDashboardStats, getTransactions, getDailySpending, getMonthlyIncomeExpenses } from '@/lib/actions';
 import Link from 'next/link';
 import { SpendingActivityGrid } from '@/components/spending-activity-grid';
+import { IncomeExpensesChart } from '@/components/income-expenses-chart';
 import { PrivateAmount } from '@/components/private-amount';
 
 function formatCurrency(cents: number, currency = 'EUR') {
@@ -38,10 +39,11 @@ function MiniSparkline({ positive = true }: { positive?: boolean }) {
 }
 
 export default async function DashboardPage() {
-  const [stats, recentTransactions, dailySpending] = await Promise.all([
+  const [stats, recentTransactions, dailySpending, monthlyData] = await Promise.all([
     getDashboardStats(),
     getTransactions({ limit: 8 }),
     getDailySpending(),
+    getMonthlyIncomeExpenses(12),
   ]);
 
   const { netWorth, monthlyIncome, monthlyExpenses, accounts } = stats;
@@ -134,6 +136,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Income vs Expenses - Block Chart */}
+      <IncomeExpensesChart monthlyData={monthlyData} />
 
       {/* Spending Activity - GitHub Style */}
       <SpendingActivityGrid yearlyTotal={Math.abs(monthlyExpenses) * 12} dailySpending={dailySpending} />
