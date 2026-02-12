@@ -88,8 +88,8 @@ function getMonthLabels(grid: Array<{ date: Date; spending: number }[]>) {
 }
 
 // Less spending = darker (good/saved), More spending = lighter (warning)
-// Level 0 = no spending (empty), 1 = least (darkest), 4 = most (lightest)
-const COLORS = ['#EBEDF0', '#1A1A1A', '#4A4A4A', '#7A7A7A', '#B0B0B0'];
+// Level 0 = no spending (darkest), 4 = most spending (lightest)
+const COLORS = ['#1A1A1A', '#4A4A4A', '#7A7A7A', '#B0B0B0', '#EBEDF0'];
 
 export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps) {
   const [hoveredCell, setHoveredCell] = useState<{ date: Date; spending: number } | null>(null);
