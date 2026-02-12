@@ -119,8 +119,8 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-white text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/50'
+                  ? 'bg-white text-[#1A1A1A] shadow-sm'
+                  : 'text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-white/50'
               )}
             >
               {isActive && (
@@ -135,7 +135,7 @@ export function Sidebar() {
 
       {/* Secondary Navigation */}
       <div className="px-3 py-4 border-t border-border/50">
-        <p className="px-3 pb-2 text-xs font-medium text-muted-foreground">Settings</p>
+        <p className="px-3 pb-2 text-xs font-medium text-[#6B6B6B]">Settings</p>
         {secondaryNavigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -145,8 +145,8 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-white text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/50'
+                  ? 'bg-white text-[#1A1A1A] shadow-sm'
+                  : 'text-[#6B6B6B] hover:text-[#1A1A1A] hover:bg-white/50'
               )}
             >
               {isActive && (

@@ -132,67 +132,71 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Spending Trend - Block Chart Style */}
+      {/* Spending Activity - GitHub Style */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <p className="label-sm">SPENDING TREND</p>
-              <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-xs">?</span>
+              <p className="label-sm">SPENDING ACTIVITY</p>
+              <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">?</span>
             </div>
-            <div className="flex items-center gap-2">
-              {['Weekly', 'Monthly', 'Yearly'].map((period, i) => (
-                <button
-                  key={period}
-                  className={`pill ${i === 1 ? 'pill-active' : 'pill-inactive'}`}
-                >
-                  {period}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">Less</span>
+              <div className="flex gap-1">
+                {[0, 1, 2, 3, 4].map((level) => (
+                  <div 
+                    key={level}
+                    className="w-3 h-3 rounded-sm"
+                    style={{ 
+                      backgroundColor: level === 0 
+                        ? '#EBEDF0' 
+                        : `rgba(26, 26, 26, ${0.2 + level * 0.2})` 
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">More</span>
             </div>
           </div>
 
           <div className="flex items-baseline gap-4 mb-6">
-            <p className="text-sm text-muted-foreground">Total Spending:</p>
+            <p className="text-sm text-muted-foreground">Total this year:</p>
             <p className="text-2xl font-semibold tabular-nums">
-              {formatCurrency(Math.abs(monthlyExpenses))}
+              {formatCurrency(Math.abs(monthlyExpenses) * 12)}
             </p>
-            <div className="flex items-center gap-4 ml-8">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#1A1A1A]/30" />
-                <span className="text-sm text-muted-foreground">Essentials</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#1A1A1A]" />
-                <span className="text-sm text-muted-foreground">Discretionary</span>
-              </div>
-            </div>
           </div>
 
-          {/* Block Chart */}
-          <div className="relative">
-            <div className="flex items-end gap-1 h-48">
-              {Array.from({ length: 52 }).map((_, i) => {
-                const height = Math.random() * 80 + 20;
-                const isDiscretionary = Math.random() > 0.5;
-                return (
-                  <div key={i} className="flex-1 flex flex-col justify-end gap-0.5">
-                    <div 
-                      className={`w-full rounded-sm ${isDiscretionary ? 'bg-[#1A1A1A]' : 'bg-[#1A1A1A]/30'}`}
-                      style={{ height: `${height * 0.6}%` }}
-                    />
-                    <div 
-                      className={`w-full rounded-sm ${!isDiscretionary ? 'bg-[#1A1A1A]' : 'bg-[#1A1A1A]/30'}`}
-                      style={{ height: `${height * 0.4}%` }}
-                    />
-                  </div>
-                );
-              })}
+          {/* GitHub-style Activity Grid */}
+          <div className="overflow-x-auto">
+            <div className="inline-flex gap-1">
+              {/* Weeks (52 columns) */}
+              {Array.from({ length: 52 }).map((_, weekIdx) => (
+                <div key={weekIdx} className="flex flex-col gap-1">
+                  {/* Days (7 rows) */}
+                  {Array.from({ length: 7 }).map((_, dayIdx) => {
+                    // Generate spending intensity (0-4)
+                    const seed = (weekIdx * 7 + dayIdx) * 13 % 100;
+                    const level = seed < 20 ? 0 : seed < 40 ? 1 : seed < 60 ? 2 : seed < 80 ? 3 : 4;
+                    return (
+                      <div
+                        key={dayIdx}
+                        className="w-3 h-3 rounded-sm transition-colors hover:ring-1 hover:ring-[#1A1A1A]/30"
+                        style={{ 
+                          backgroundColor: level === 0 
+                            ? '#EBEDF0' 
+                            : `rgba(26, 26, 26, ${0.15 + level * 0.2})` 
+                        }}
+                        title={`Week ${weekIdx + 1}, Day ${dayIdx + 1}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
             </div>
-            {/* X-axis labels */}
-            <div className="flex justify-between mt-4 text-xs text-muted-foreground">
-              {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].map(m => (
-                <span key={m}>{m}</span>
+            {/* Month labels */}
+            <div className="flex mt-2 text-xs text-muted-foreground">
+              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
+                <span key={m} style={{ width: `${100/12}%` }}>{m}</span>
               ))}
             </div>
           </div>
