@@ -131,23 +131,10 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
           </div>
         </div>
 
-        {/* Month labels */}
-        <div className="relative ml-8 mb-2 h-4">
-          {monthLabels.map((month, i) => (
-            <span 
-              key={i}
-              className="absolute text-xs text-muted-foreground"
-              style={{ left: `${(month.weekIndex / 53) * 100}%` }}
-            >
-              {month.name}
-            </span>
-          ))}
-        </div>
-
-        {/* Grid */}
+        {/* Grid with month labels */}
         <div className="flex gap-2">
           {/* Day labels */}
-          <div className="flex flex-col justify-around text-xs text-muted-foreground pr-1" style={{ height: 82 }}>
+          <div className="flex flex-col justify-around text-xs text-muted-foreground pr-1" style={{ height: 82, marginTop: 20 }}>
             <span>Mon</span>
             <span>Wed</span>
             <span>Fri</span>
@@ -155,6 +142,20 @@ export function SpendingActivityGrid({ yearlyTotal }: SpendingActivityGridProps)
           
           {/* Activity Grid */}
           <div className="flex-1 overflow-x-auto">
+            {/* Month labels - positioned by pixel */}
+            <div className="relative h-5 mb-1" style={{ width: 53 * 13 - 3 }}>
+              {monthLabels.map((month, i) => (
+                <span 
+                  key={i}
+                  className="absolute text-xs text-muted-foreground"
+                  style={{ left: month.weekIndex * 13 }}
+                >
+                  {month.name}
+                </span>
+              ))}
+            </div>
+            
+            {/* Grid cells */}
             <div className="flex gap-[3px]" style={{ width: 'max-content' }}>
               {grid.map((week, weekIdx) => (
                 <div key={weekIdx} className="flex flex-col gap-[3px]">
