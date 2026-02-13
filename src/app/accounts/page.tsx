@@ -24,7 +24,12 @@ function formatCurrency(cents: number, currency = 'USD') {
 }
 
 export default async function AccountsPage() {
-  const accounts = await getAccounts();
+  const accountsUnsorted = await getAccounts();
+  
+  // Sort by absolute balance (highest first)
+  const accounts = [...accountsUnsorted].sort((a, b) => 
+    Math.abs(b.currentBalance) - Math.abs(a.currentBalance)
+  );
   
   const totalByType = accounts.reduce((acc, account) => {
     const type = account.type;
